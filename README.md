@@ -6,7 +6,7 @@ A single-include header file written in `C++20` implementing 3 different kinds o
 - **WeakRef**: A weak-referencing smart pointer intended to resemble `std::weak_ptr` and the way it relates to `std::shared_ptr`.
 
 ## License
-IntricateAllocator is licensed under the Apache 2.0 License. See [LICENSE](LICENSE).
+IntricateAllocator is licensed under the Apache-2.0 License. See [LICENSE](LICENSE).
 
 ```
 Copyright 2024 Adam Foflonker
