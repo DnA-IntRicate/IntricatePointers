@@ -88,3 +88,8 @@ workspace "Examples"
             "LinkTimeOptimization",
             "NoIncrementalLink"
         }
+
+-- This path is relative to the premake scripts for each Example, not relative to this premake script
+INTRICATE_POINTERS_HPP_INCLUDE = "../../IntricatePointers/src/include"
+
+include "Example-Ref"
