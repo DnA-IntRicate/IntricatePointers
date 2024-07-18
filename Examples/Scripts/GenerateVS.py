@@ -9,7 +9,7 @@ def Delete():
     pass
 
 if __name__ == "__main__":
-    os.chdir("../")
+    os.chdir("../Examples")
     Delete()
     print("\n")
     Generate()
