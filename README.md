@@ -1,5 +1,5 @@
 # IntricatePointers
-A single-include header file written in `C++20` implementing 3 different kinds of smart pointers.
+A single-header file written in `C++20` implementing 3 different kinds of smart pointers.
 
 - **Scope**: A scoped unique pointer intended to resemble `std::unique_ptr`.
 - **Ref**: A smart pointer intended to resemble `std::shared_ptr` that implements an intrusive reference counting system.
