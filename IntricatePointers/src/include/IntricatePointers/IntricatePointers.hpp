@@ -119,7 +119,16 @@ namespace Intricate
         template<typename _Ty2, std::enable_if_t<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
         constexpr Ref(const Ref<_Ty2>& other) noexcept : m_Ptr(other.m_Ptr), m_RefCount(other.m_RefCount) { IncRef(); }
 
-        Ref(const Ref<_Ty>& other) noexcept { CopyFrom(other); }
+        Ref(const Ref<_Ty>& other) noexcept
+        {
+            if (this != &other)
+            {
+                m_Ptr = other.m_Ptr;
+                m_RefCount = other.m_RefCount;
+
+                IncRef();
+            }
+        }
 
         template<typename _Ty2, std::enable_if_t<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
         constexpr Ref(Ref<_Ty2>&& other) noexcept : m_Ptr(other.m_Ptr), m_RefCount(other.m_RefCount)
@@ -147,28 +156,23 @@ namespace Intricate
             }
         }
 
-        void Reset() noexcept
+        constexpr void Reset() noexcept
         {
-            DecRef();
-
-            m_Ptr = nullptr;
-            m_RefCount = nullptr;
+            Ref<_Ty>(nullptr).Swap(*this);
         }
 
         uint32_t RefCount() const noexcept { return m_RefCount ? m_RefCount->load() : 0; }
         bool Unique() const noexcept { return RefCount() == 1; }
 
         constexpr _Ty* Raw() const noexcept { return m_Ptr; }
-
         constexpr bool Valid() const noexcept { return Raw() != nullptr; }
-        constexpr explicit operator bool() const noexcept { return Valid(); }
 
+        constexpr explicit operator bool() const noexcept { return Valid(); }
         constexpr operator Ref<const _Ty>() const noexcept { return Ref<const _Ty>{ m_Ptr, m_RefCount }; }
 
         Ref<_Ty>& operator=(const Ref<_Ty>& other) noexcept
         {
             Ref<_Ty>(other).Swap(*this);
-
             return *this;
         }
 
@@ -176,14 +180,12 @@ namespace Intricate
         constexpr Ref<_Ty>& operator=(const Ref<_Ty2>& other) noexcept
         {
             Ref<_Ty>(other).Swap(*this);
-
             return *this;
         }
 
         Ref<_Ty>& operator=(Ref<_Ty>&& other) noexcept
         {
             Ref<_Ty>(std::move(other)).Swap(*this);
-
             return *this;
         }
 
@@ -191,14 +193,12 @@ namespace Intricate
         constexpr Ref<_Ty>& operator=(Ref<_Ty2>&& other) noexcept
         {
             Ref<_Ty>(std::move(other)).Swap(*this);
-
             return *this;
         }
 
-        Ref<_Ty>& operator=(std::nullptr_t) noexcept
+        constexpr Ref<_Ty>& operator=(std::nullptr_t) noexcept
         {
-            Reset();
-
+            Ref<_Ty>(nullptr).Swap(*this);
             return *this;
         }
 
@@ -209,12 +209,13 @@ namespace Intricate
         void IncRef() noexcept
         {
             if (m_RefCount)
-                m_RefCount->fetch_add(1, std::memory_order_relaxed);
+                (void)m_RefCount->fetch_add(1, std::memory_order_relaxed);
         }
 
         void DecRef() noexcept
         {
-            if (m_RefCount && m_RefCount->fetch_sub(1, std::memory_order_release) == 0)
+            // Decrement the reference count by 1 and check if the reference count was 1 before decrementing
+            if (m_RefCount && m_RefCount->fetch_sub(1, std::memory_order_acq_rel) == 1)
             {
                 std::atomic_thread_fence(std::memory_order_acquire);
 
