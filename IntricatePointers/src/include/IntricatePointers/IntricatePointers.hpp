@@ -86,21 +86,15 @@ namespace Intricate
     };
 
     template<typename _Ty, typename... _Args, std::enable_if_t<std::negation_v<std::is_array<_Ty>>, int> = 0>
-    constexpr inline static Scope<_Ty> CreateScope(_Args&&... args) noexcept
+    constexpr static Scope<_Ty> CreateScope(_Args&&... args) noexcept
     {
         return Scope<_Ty>(new _Ty(std::forward<_Args>(args)...));
     }
 
     template<typename _WantedType, typename _ScopeType>
-    constexpr inline static _WantedType* GetScopeBaseTypePtr(const Scope<_ScopeType>& scope) noexcept
+    constexpr static _WantedType* GetScopeBaseTypePtr(const Scope<_ScopeType>& scope) noexcept
     {
         return static_cast<_WantedType*>(scope.Raw());
-    }
-
-    template<typename _Elem, typename _Traits, typename _Ty>
-    constexpr inline static std::basic_ostream<_Elem, _Traits>& operator<<(std::basic_ostream<_Elem, _Traits>& ostream, const Scope<_Ty>& ptr)
-    {
-        return ostream << ptr.Raw();
     }
 
     // This forward declaration is required by Ref
@@ -241,201 +235,15 @@ namespace Intricate
     };
 
     template<typename _Ty, typename... _Args, std::enable_if_t<std::negation_v<std::is_array<_Ty>>, int> = 0>
-    constexpr inline static Ref<_Ty> CreateRef(_Args&&... args) noexcept
+    constexpr static Ref<_Ty> CreateRef(_Args&&... args) noexcept
     {
         return Ref<_Ty>(new _Ty(std::forward<_Args>(args)...));
     }
 
     template<typename _WantedType, typename _RefType>
-    constexpr inline static _WantedType* GetRefBaseTypePtr(const Ref<_RefType>& ref) noexcept
+    constexpr static _WantedType* GetRefBaseTypePtr(const Ref<_RefType>& ref) noexcept
     {
         return static_cast<_WantedType*>(ref.Raw());
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator==(const Ref<_Ty1>& left, const Ref<_Ty2>& right) noexcept
-    {
-        return left.Raw() == right.Raw();
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator==(const Ref<_Ty1>& left, _Ty2* right) noexcept
-    {
-        return left.Raw() == right;
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator==(_Ty1* left, const Ref<_Ty2> right) noexcept
-    {
-        return left == right.Raw();
-    }
-
-    template<typename _Ty>
-    constexpr inline static bool operator==(const Ref<_Ty>& left, std::nullptr_t) noexcept
-    {
-        return left.Raw() == nullptr;
-    }
-
-    template<typename _Ty>
-    constexpr inline static bool operator==(std::nullptr_t, const Ref<_Ty>& right) noexcept
-    {
-        return nullptr == right.Raw();
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator!=(const Ref<_Ty1>& left, const Ref<_Ty2>& right) noexcept
-    {
-        return left.Raw() != right.Raw();
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator!=(const Ref<_Ty1>& left, _Ty2* right) noexcept
-    {
-        return left.Raw() != right;
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator!=(_Ty1* left, const Ref<_Ty2>& right) noexcept
-    {
-        return left != right.Raw();
-    }
-
-    template<typename _Ty>
-    constexpr inline static bool operator!=(const Ref<_Ty>& left, std::nullptr_t) noexcept
-    {
-        return left.Raw() != nullptr;
-    }
-
-    template<typename _Ty>
-    constexpr inline static bool operator!=(std::nullptr_t, const Ref<_Ty>& right) noexcept
-    {
-        return nullptr != right.Raw();
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator<(const Ref<_Ty1>& left, const Ref<_Ty2>& right) noexcept
-    {
-        return left.Raw() < right.Raw();
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator<(const Ref<_Ty1>& left, _Ty2* right) noexcept
-    {
-        return left.Raw() < right;
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator<(_Ty1* left, const Ref<_Ty2>& right) noexcept
-    {
-        return left < right.Raw();
-    }
-
-    template<typename _Ty>
-    constexpr inline static bool operator<(const Ref<_Ty>& left, std::nullptr_t) noexcept
-    {
-        return left.Raw() < static_cast<_Ty*>(nullptr);
-    }
-
-    template<typename _Ty>
-    constexpr inline static bool operator<(std::nullptr_t, const Ref<_Ty>& right) noexcept
-    {
-        return static_cast<_Ty*>(nullptr) < right.Raw();
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator<=(const Ref<_Ty1>& left, const Ref<_Ty2>& right) noexcept
-    {
-        return left.Raw() <= right.Raw();
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator<=(const Ref<_Ty1>& left, _Ty2* right) noexcept
-    {
-        return left.Raw() <= right;
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator<=(_Ty1* left, const Ref<_Ty2>& right) noexcept
-    {
-        return left <= right.Raw();
-    }
-
-    template<typename _Ty>
-    constexpr inline static bool operator<=(const Ref<_Ty>& left, std::nullptr_t) noexcept
-    {
-        return left.Raw() <= static_cast<_Ty*>(nullptr);
-    }
-
-    template<typename _Ty>
-    constexpr inline static bool operator<=(std::nullptr_t, const Ref<_Ty>& right) noexcept
-    {
-        return static_cast<_Ty*>(nullptr) <= right.Raw();
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator>(const Ref<_Ty1>& left, const Ref<_Ty2>& right) noexcept
-    {
-        return left.Raw() > right.Raw();
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator>(const Ref<_Ty1>& left, _Ty2* right) noexcept
-    {
-        return left.Raw() > right;
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator>(_Ty1* left, const Ref<_Ty2>& right) noexcept
-    {
-        return left > right.Raw();
-    }
-
-    template<typename _Ty>
-    constexpr inline static bool operator>(const Ref<_Ty>& left, std::nullptr_t) noexcept
-    {
-        return left.Raw() > static_cast<_Ty*>(nullptr);
-    }
-
-    template<typename _Ty>
-    constexpr inline static bool operator>(std::nullptr_t, const Ref<_Ty>& right) noexcept
-    {
-        return static_cast<_Ty*>(nullptr) > right.Raw();
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator>=(const Ref<_Ty1>& left, const Ref<_Ty2>& right) noexcept
-    {
-        return left.Raw() >= right.Raw();
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator>=(const Ref<_Ty1>& left, _Ty2* right) noexcept
-    {
-        return left.Raw() >= right;
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator>=(_Ty1* left, const Ref<_Ty2>& right) noexcept
-    {
-        return left >= right.Raw();
-    }
-
-    template<typename _Ty>
-    constexpr inline static bool operator>=(const Ref<_Ty>& left, std::nullptr_t) noexcept
-    {
-        return left.Raw() >= static_cast<_Ty*>(nullptr);
-    }
-
-    template<typename _Ty>
-    constexpr inline static bool operator>=(std::nullptr_t, const Ref<_Ty>& right) noexcept
-    {
-        return static_cast<_Ty*>(nullptr) >= right.Raw();
-    }
-
-    template<typename _Elem, typename _Traits, typename _Ty>
-    constexpr inline static std::basic_ostream<_Elem, _Traits>& operator<<(std::basic_ostream<_Elem, _Traits>& ostream, const Ref<_Ty>& ptr)
-    {
-        return ostream << ptr.Raw();
     }
 
     template<typename _Ty>
@@ -580,197 +388,11 @@ namespace Intricate
         std::atomic_uint* m_RefCount;
     };
 
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator==(const WeakRef<_Ty1>& left, const WeakRef<_Ty2>& right) noexcept
-    {
-        return left.Raw() == right.Raw();
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator==(const WeakRef<_Ty1>& left, _Ty2* right) noexcept
-    {
-        return left.Raw() == right;
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator==(_Ty1* left, const WeakRef<_Ty2> right) noexcept
-    {
-        return left == right.Raw();
-    }
-
-    template<typename _Ty>
-    constexpr inline static bool operator==(const WeakRef<_Ty>& left, std::nullptr_t) noexcept
-    {
-        return left.Raw() == nullptr;
-    }
-
-    template<typename _Ty>
-    constexpr inline static bool operator==(std::nullptr_t, const WeakRef<_Ty>& right) noexcept
-    {
-        return nullptr == right.Raw();
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator!=(const WeakRef<_Ty1>& left, const WeakRef<_Ty2>& right) noexcept
-    {
-        return left.Raw() != right.Raw();
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator!=(const WeakRef<_Ty1>& left, _Ty2* right) noexcept
-    {
-        return left.Raw() != right;
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator!=(_Ty1* left, const WeakRef<_Ty2>& right) noexcept
-    {
-        return left != right.Raw();
-    }
-
-    template<typename _Ty>
-    constexpr inline static bool operator!=(const WeakRef<_Ty>& left, std::nullptr_t) noexcept
-    {
-        return left.Raw() != nullptr;
-    }
-
-    template<typename _Ty>
-    constexpr inline static bool operator!=(std::nullptr_t, const WeakRef<_Ty>& right) noexcept
-    {
-        return nullptr != right.Raw();
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator<(const Ref<_Ty1>& left, const WeakRef<_Ty2>& right) noexcept
-    {
-        return left.Raw() < right.Raw();
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator<(const WeakRef<_Ty1>& left, _Ty2* right) noexcept
-    {
-        return left.Raw() < right;
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator<(_Ty1* left, const WeakRef<_Ty2>& right) noexcept
-    {
-        return left < right.Raw();
-    }
-
-    template<typename _Ty>
-    constexpr inline static bool operator<(const WeakRef<_Ty>& left, std::nullptr_t) noexcept
-    {
-        return left.Raw() < static_cast<_Ty*>(nullptr);
-    }
-
-    template<typename _Ty>
-    constexpr inline static bool operator<(std::nullptr_t, const WeakRef<_Ty>& right) noexcept
-    {
-        return static_cast<_Ty*>(nullptr) < right.Raw();
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator<=(const WeakRef<_Ty1>& left, const WeakRef<_Ty2>& right) noexcept
-    {
-        return left.Raw() <= right.Raw();
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator<=(const WeakRef<_Ty1>& left, _Ty2* right) noexcept
-    {
-        return left.Raw() <= right;
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator<=(_Ty1* left, const WeakRef<_Ty2>& right) noexcept
-    {
-        return left <= right.Raw();
-    }
-
-    template<typename _Ty>
-    constexpr inline static bool operator<=(const WeakRef<_Ty>& left, std::nullptr_t) noexcept
-    {
-        return left.Raw() <= static_cast<_Ty*>(nullptr);
-    }
-
-    template<typename _Ty>
-    constexpr inline static bool operator<=(std::nullptr_t, const WeakRef<_Ty>& right) noexcept
-    {
-        return static_cast<_Ty*>(nullptr) <= right.Raw();
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator>(const WeakRef<_Ty1>& left, const WeakRef<_Ty2>& right) noexcept
-    {
-        return left.Raw() > right.Raw();
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator>(const WeakRef<_Ty1>& left, _Ty2* right) noexcept
-    {
-        return left.Raw() > right;
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator>(_Ty1* left, const WeakRef<_Ty2>& right) noexcept
-    {
-        return left > right.Raw();
-    }
-
-    template<typename _Ty>
-    constexpr inline static bool operator>(const WeakRef<_Ty>& left, std::nullptr_t) noexcept
-    {
-        return left.Raw() > static_cast<_Ty*>(nullptr);
-    }
-
-    template<typename _Ty>
-    constexpr inline static bool operator>(std::nullptr_t, const WeakRef<_Ty>& right) noexcept
-    {
-        return static_cast<_Ty*>(nullptr) > right.Raw();
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator>=(const WeakRef<_Ty1>& left, const WeakRef<_Ty2>& right) noexcept
-    {
-        return left.Raw() >= right.Raw();
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator>=(const WeakRef<_Ty1>& left, _Ty2* right) noexcept
-    {
-        return left.Raw() >= right;
-    }
-
-    template<typename _Ty1, typename _Ty2>
-    constexpr inline static bool operator>=(_Ty1* left, const WeakRef<_Ty2>& right) noexcept
-    {
-        return left >= right.Raw();
-    }
-
-    template<typename _Ty>
-    constexpr inline static bool operator>=(const WeakRef<_Ty>& left, std::nullptr_t) noexcept
-    {
-        return left.Raw() >= static_cast<_Ty*>(nullptr);
-    }
-
-    template<typename _Ty>
-    constexpr inline static bool operator>=(std::nullptr_t, const WeakRef<_Ty>& right) noexcept
-    {
-        return static_cast<_Ty*>(nullptr) >= right.Raw();
-    }
-
-    template<typename _Elem, typename _Traits, typename _Ty>
-    constexpr inline static std::basic_ostream<_Elem, _Traits>& operator<<(std::basic_ostream<_Elem, _Traits>& ostream, const WeakRef<_Ty>& ptr)
-    {
-        return ostream << ptr.Raw();
-    }
-
     template<typename _Ty>
     using UniquePtr = std::unique_ptr<_Ty>;
 
     template<typename _Ty, typename... _Args>
-    constexpr inline static UniquePtr<_Ty> CreateUniquePtr(_Args&&... args) noexcept
+    constexpr static UniquePtr<_Ty> CreateUniquePtr(_Args&&... args) noexcept
     {
         return std::make_unique<_Ty>(std::forward<_Args>(args)...);
     }
@@ -779,7 +401,7 @@ namespace Intricate
     using SharedPtr = std::shared_ptr<_Ty>;
 
     template<typename _Ty, typename... _Args>
-    constexpr inline static SharedPtr<_Ty> CreateSharedPtr(_Args&&... args) noexcept
+    constexpr static SharedPtr<_Ty> CreateSharedPtr(_Args&&... args) noexcept
     {
         return std::make_shared<_Ty>(std::forward<_Args>(args)...);
     }
@@ -810,4 +432,382 @@ namespace std
     {
         size_t operator()(const Intricate::WeakRef<_Ty>& ptr) const noexcept { return hash<_Ty*>{}(ptr.Raw()); }
     };
+}
+
+template<typename _Elem, typename _Traits, typename _Ty>
+constexpr static std::basic_ostream<_Elem, _Traits>& operator<<(std::basic_ostream<_Elem, _Traits>& ostream, const Intricate::Scope<_Ty>& ptr)
+{
+    return ostream << ptr.Raw();
+}
+
+template<typename _Elem, typename _Traits, typename _Ty>
+constexpr static std::basic_ostream<_Elem, _Traits>& operator<<(std::basic_ostream<_Elem, _Traits>& ostream, const Intricate::Ref<_Ty>& ptr)
+{
+    return ostream << ptr.Raw();
+}
+
+template<typename _Elem, typename _Traits, typename _Ty>
+constexpr static std::basic_ostream<_Elem, _Traits>& operator<<(std::basic_ostream<_Elem, _Traits>& ostream, const Intricate::WeakRef<_Ty>& ptr)
+{
+    return ostream << ptr.Raw();
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator==(const Intricate::Ref<_Ty1>& left, const Intricate::Ref<_Ty2>& right) noexcept
+{
+    return left.Raw() == right.Raw();
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator==(const Intricate::Ref<_Ty1>& left, _Ty2* right) noexcept
+{
+    return left.Raw() == right;
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator==(_Ty1* left, const Intricate::Ref<_Ty2> right) noexcept
+{
+    return left == right.Raw();
+}
+
+template<typename _Ty>
+constexpr static bool operator==(const Intricate::Ref<_Ty>& left, std::nullptr_t) noexcept
+{
+    return left.Raw() == nullptr;
+}
+
+template<typename _Ty>
+constexpr static bool operator==(std::nullptr_t, const Intricate::Ref<_Ty>& right) noexcept
+{
+    return nullptr == right.Raw();
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator!=(const Intricate::Ref<_Ty1>& left, const Intricate::Ref<_Ty2>& right) noexcept
+{
+    return left.Raw() != right.Raw();
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator!=(const Intricate::Ref<_Ty1>& left, _Ty2* right) noexcept
+{
+    return left.Raw() != right;
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator!=(_Ty1* left, const Intricate::Ref<_Ty2>& right) noexcept
+{
+    return left != right.Raw();
+}
+
+template<typename _Ty>
+constexpr static bool operator!=(const Intricate::Ref<_Ty>& left, std::nullptr_t) noexcept
+{
+    return left.Raw() != nullptr;
+}
+
+template<typename _Ty>
+constexpr static bool operator!=(std::nullptr_t, const Intricate::Ref<_Ty>& right) noexcept
+{
+    return nullptr != right.Raw();
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator<(const Intricate::Ref<_Ty1>& left, const Intricate::Ref<_Ty2>& right) noexcept
+{
+    return left.Raw() < right.Raw();
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator<(const Intricate::Ref<_Ty1>& left, _Ty2* right) noexcept
+{
+    return left.Raw() < right;
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator<(_Ty1* left, const Intricate::Ref<_Ty2>& right) noexcept
+{
+    return left < right.Raw();
+}
+
+template<typename _Ty>
+constexpr static bool operator<(const Intricate::Ref<_Ty>& left, std::nullptr_t) noexcept
+{
+    return left.Raw() < static_cast<_Ty*>(nullptr);
+}
+
+template<typename _Ty>
+constexpr static bool operator<(std::nullptr_t, const Intricate::Ref<_Ty>& right) noexcept
+{
+    return static_cast<_Ty*>(nullptr) < right.Raw();
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator<=(const Intricate::Ref<_Ty1>& left, const Intricate::Ref<_Ty2>& right) noexcept
+{
+    return left.Raw() <= right.Raw();
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator<=(const Intricate::Ref<_Ty1>& left, _Ty2* right) noexcept
+{
+    return left.Raw() <= right;
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator<=(_Ty1* left, const Intricate::Ref<_Ty2>& right) noexcept
+{
+    return left <= right.Raw();
+}
+
+template<typename _Ty>
+constexpr static bool operator<=(const Intricate::Ref<_Ty>& left, std::nullptr_t) noexcept
+{
+    return left.Raw() <= static_cast<_Ty*>(nullptr);
+}
+
+template<typename _Ty>
+constexpr static bool operator<=(std::nullptr_t, const Intricate::Ref<_Ty>& right) noexcept
+{
+    return static_cast<_Ty*>(nullptr) <= right.Raw();
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator>(const Intricate::Ref<_Ty1>& left, const Intricate::Ref<_Ty2>& right) noexcept
+{
+    return left.Raw() > right.Raw();
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator>(const Intricate::Ref<_Ty1>& left, _Ty2* right) noexcept
+{
+    return left.Raw() > right;
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator>(_Ty1* left, const Intricate::Ref<_Ty2>& right) noexcept
+{
+    return left > right.Raw();
+}
+
+template<typename _Ty>
+constexpr static bool operator>(const Intricate::Ref<_Ty>& left, std::nullptr_t) noexcept
+{
+    return left.Raw() > static_cast<_Ty*>(nullptr);
+}
+
+template<typename _Ty>
+constexpr static bool operator>(std::nullptr_t, const Intricate::Ref<_Ty>& right) noexcept
+{
+    return static_cast<_Ty*>(nullptr) > right.Raw();
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator>=(const Intricate::Ref<_Ty1>& left, const Intricate::Ref<_Ty2>& right) noexcept
+{
+    return left.Raw() >= right.Raw();
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator>=(const Intricate::Ref<_Ty1>& left, _Ty2* right) noexcept
+{
+    return left.Raw() >= right;
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator>=(_Ty1* left, const Intricate::Ref<_Ty2>& right) noexcept
+{
+    return left >= right.Raw();
+}
+
+template<typename _Ty>
+constexpr static bool operator>=(const Intricate::Ref<_Ty>& left, std::nullptr_t) noexcept
+{
+    return left.Raw() >= static_cast<_Ty*>(nullptr);
+}
+
+template<typename _Ty>
+constexpr static bool operator>=(std::nullptr_t, const Intricate::Ref<_Ty>& right) noexcept
+{
+    return static_cast<_Ty*>(nullptr) >= right.Raw();
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator==(const Intricate::WeakRef<_Ty1>& left, const Intricate::WeakRef<_Ty2>& right) noexcept
+{
+    return left.Raw() == right.Raw();
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator==(const Intricate::WeakRef<_Ty1>& left, _Ty2* right) noexcept
+{
+    return left.Raw() == right;
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator==(_Ty1* left, const Intricate::WeakRef<_Ty2> right) noexcept
+{
+    return left == right.Raw();
+}
+
+template<typename _Ty>
+constexpr static bool operator==(const Intricate::WeakRef<_Ty>& left, std::nullptr_t) noexcept
+{
+    return left.Raw() == nullptr;
+}
+
+template<typename _Ty>
+constexpr static bool operator==(std::nullptr_t, const Intricate::WeakRef<_Ty>& right) noexcept
+{
+    return nullptr == right.Raw();
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator!=(const Intricate::WeakRef<_Ty1>& left, const Intricate::WeakRef<_Ty2>& right) noexcept
+{
+    return left.Raw() != right.Raw();
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator!=(const Intricate::WeakRef<_Ty1>& left, _Ty2* right) noexcept
+{
+    return left.Raw() != right;
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator!=(_Ty1* left, const Intricate::WeakRef<_Ty2>& right) noexcept
+{
+    return left != right.Raw();
+}
+
+template<typename _Ty>
+constexpr static bool operator!=(const Intricate::WeakRef<_Ty>& left, std::nullptr_t) noexcept
+{
+    return left.Raw() != nullptr;
+}
+
+template<typename _Ty>
+constexpr static bool operator!=(std::nullptr_t, const Intricate::WeakRef<_Ty>& right) noexcept
+{
+    return nullptr != right.Raw();
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator<(const Intricate::Ref<_Ty1>& left, const Intricate::WeakRef<_Ty2>& right) noexcept
+{
+    return left.Raw() < right.Raw();
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator<(const Intricate::WeakRef<_Ty1>& left, _Ty2* right) noexcept
+{
+    return left.Raw() < right;
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator<(_Ty1* left, const Intricate::WeakRef<_Ty2>& right) noexcept
+{
+    return left < right.Raw();
+}
+
+template<typename _Ty>
+constexpr static bool operator<(const Intricate::WeakRef<_Ty>& left, std::nullptr_t) noexcept
+{
+    return left.Raw() < static_cast<_Ty*>(nullptr);
+}
+
+template<typename _Ty>
+constexpr static bool operator<(std::nullptr_t, const Intricate::WeakRef<_Ty>& right) noexcept
+{
+    return static_cast<_Ty*>(nullptr) < right.Raw();
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator<=(const Intricate::WeakRef<_Ty1>& left, const Intricate::WeakRef<_Ty2>& right) noexcept
+{
+    return left.Raw() <= right.Raw();
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator<=(const Intricate::WeakRef<_Ty1>& left, _Ty2* right) noexcept
+{
+    return left.Raw() <= right;
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator<=(_Ty1* left, const Intricate::WeakRef<_Ty2>& right) noexcept
+{
+    return left <= right.Raw();
+}
+
+template<typename _Ty>
+constexpr static bool operator<=(const Intricate::WeakRef<_Ty>& left, std::nullptr_t) noexcept
+{
+    return left.Raw() <= static_cast<_Ty*>(nullptr);
+}
+
+template<typename _Ty>
+constexpr static bool operator<=(std::nullptr_t, const Intricate::WeakRef<_Ty>& right) noexcept
+{
+    return static_cast<_Ty*>(nullptr) <= right.Raw();
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator>(const Intricate::WeakRef<_Ty1>& left, const Intricate::WeakRef<_Ty2>& right) noexcept
+{
+    return left.Raw() > right.Raw();
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator>(const Intricate::WeakRef<_Ty1>& left, _Ty2* right) noexcept
+{
+    return left.Raw() > right;
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator>(_Ty1* left, const Intricate::WeakRef<_Ty2>& right) noexcept
+{
+    return left > right.Raw();
+}
+
+template<typename _Ty>
+constexpr static bool operator>(const Intricate::WeakRef<_Ty>& left, std::nullptr_t) noexcept
+{
+    return left.Raw() > static_cast<_Ty*>(nullptr);
+}
+
+template<typename _Ty>
+constexpr static bool operator>(std::nullptr_t, const Intricate::WeakRef<_Ty>& right) noexcept
+{
+    return static_cast<_Ty*>(nullptr) > right.Raw();
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator>=(const Intricate::WeakRef<_Ty1>& left, const Intricate::WeakRef<_Ty2>& right) noexcept
+{
+    return left.Raw() >= right.Raw();
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator>=(const Intricate::WeakRef<_Ty1>& left, _Ty2* right) noexcept
+{
+    return left.Raw() >= right;
+}
+
+template<typename _Ty1, typename _Ty2>
+constexpr static bool operator>=(_Ty1* left, const Intricate::WeakRef<_Ty2>& right) noexcept
+{
+    return left >= right.Raw();
+}
+
+template<typename _Ty>
+constexpr static bool operator>=(const Intricate::WeakRef<_Ty>& left, std::nullptr_t) noexcept
+{
+    return left.Raw() >= static_cast<_Ty*>(nullptr);
+}
+
+template<typename _Ty>
+constexpr static bool operator>=(std::nullptr_t, const Intricate::WeakRef<_Ty>& right) noexcept
+{
+    return static_cast<_Ty*>(nullptr) >= right.Raw();
 }
