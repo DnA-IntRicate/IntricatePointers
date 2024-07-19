@@ -226,17 +226,6 @@ namespace Intricate
             }
         }
 
-        void CopyFrom(const Ref<_Ty>& other) noexcept
-        {
-            if (this != &other)
-            {
-                m_Ptr = other.m_Ptr;
-                m_RefCount = other.m_RefCount;
-
-                IncRef();
-            }
-        }
-
         constexpr void ConstructFromWeakRef(const WeakRef<_Ty>* weakRef) noexcept { *this = *(Ref<_Ty>*)(weakRef); }
 
     private:
