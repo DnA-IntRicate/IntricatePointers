@@ -57,7 +57,7 @@ if (Ref<MyStruct> lockedRef = weakRef.Lock())
 {
     lockedRef->A;
     lockedRef->B;
-} // Reference count is then decrement when the locked ref falls out of scope
+} // Reference count is then decremented when the locked ref falls out of scope
 
 strongRef = nullptr;    // Decrement the reference count (this deletes the object since the reference count is now 0)
 // The weak reference would now be expired since there are no strong references to it
