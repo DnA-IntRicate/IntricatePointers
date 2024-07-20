@@ -69,6 +69,10 @@ public:
 
 int main(int argc, char** argv)
 {
+    std::cout << "----------------------------------------------------------------\n";
+    std::cout << "Example-Ref\n";
+    std::cout << "----------------------------------------------------------------\n\n";
+
     // Creates a reference counted pointer to a newly heap-allocated and constructed instance of 'ExampleClass'
     Ref<ExampleClass> constructedRef = CreateRef<ExampleClass>(23.5f, 19.2f, INT64_MAX);
 
@@ -118,6 +122,7 @@ int main(int argc, char** argv)
 
     // Release ownership of the pointer
     int* intPtr = intRef.Release();
+    std::cout << "intRef address after release: " << intRef << '\n';
     std::cout << "intPtr: " << *intPtr << '\n';
     std::cout << "intPtr address: " << intPtr << '\n';
 

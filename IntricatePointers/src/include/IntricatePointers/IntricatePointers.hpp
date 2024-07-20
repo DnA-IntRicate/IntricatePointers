@@ -12,18 +12,23 @@ namespace Intricate
         constexpr explicit Scope(_Ty* ptr) noexcept : m_Ptr(ptr) { };
 
         template<typename _Ty2, std::enable_if_t<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
-        constexpr explicit Scope(_Ty2* ptr) noexcept { m_Ptr = static_cast<_Ty*>(ptr); }
+        constexpr explicit Scope(_Ty2* ptr) noexcept : m_Ptr(ptr) { };
 
         template<typename _Ty2, std::enable_if_t<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
-        constexpr Scope(Scope<_Ty2>&& other) noexcept { m_Ptr = static_cast<_Ty*>(other.Release()); }
+        constexpr Scope(Scope<_Ty2>&& other) noexcept : m_Ptr(other.Release()) { };
 
         constexpr Scope(Scope<_Ty>&& other) noexcept : m_Ptr(other.Release()) { };
 
         Scope(Scope<_Ty>&) = delete;
         Scope(const Scope<_Ty>&) = delete;
         constexpr Scope(std::nullptr_t) noexcept : m_Ptr(nullptr) { };
-        Scope() = default;
-        constexpr ~Scope() noexcept { Delete(); }
+        constexpr Scope() noexcept = default;
+
+        constexpr ~Scope() noexcept
+        {
+            if (m_Ptr)
+                delete m_Ptr;
+        }
 
         constexpr void Swap(Scope<_Ty>& other) noexcept
         {
@@ -31,23 +36,30 @@ namespace Intricate
                 std::swap(m_Ptr, other.m_Ptr);
         }
 
-        constexpr void Reset(_Ty* newPtr = nullptr) noexcept
+        template<typename _Ty2, std::enable_if_t<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
+        constexpr void Reset(_Ty2* newPtr) noexcept
         {
-            Delete();
-            m_Ptr = newPtr;
+            Scope<_Ty2>(newPtr).Swap(*this);
+        }
+
+        constexpr void Reset(_Ty* newPtr) noexcept
+        {
+            Scope<_Ty>(newPtr).Swap(*this);
+        }
+
+        constexpr void Reset() noexcept
+        {
+            Scope<_Ty>(nullptr).Swap(*this);
         }
 
         constexpr _Ty* Release() noexcept
         {
-            _Ty* releasedPtr = m_Ptr;
-            m_Ptr = nullptr;
-
-            return releasedPtr;
+            return std::exchange(m_Ptr, nullptr);
         }
 
         constexpr _Ty* Raw() const noexcept { return m_Ptr; }
-
         constexpr bool Valid() const noexcept { return Raw() != nullptr; }
+
         constexpr explicit operator bool() const noexcept { return Valid(); }
 
         Scope<_Ty>& operator=(Scope<_Ty>&) = delete;
@@ -55,27 +67,25 @@ namespace Intricate
 
         constexpr Scope<_Ty>& operator=(Scope<_Ty>&& other) noexcept
         {
-            Reset(other.Release());
+            Scope<_Ty>(std::move(other)).Swap(*this);
+            return *this;
+        }
 
+        template<typename _Ty2, std::enable_if_t<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
+        constexpr Scope<_Ty>& operator=(Scope<_Ty2>&& other) noexcept
+        {
+            Scope<_Ty>(std::move(other)).Swap(*this);
             return *this;
         }
 
         constexpr Scope<_Ty>& operator=(std::nullptr_t) noexcept
         {
-            Reset();
-
+            Scope<_Ty>(nullptr).Swap(*this);
             return *this;
         }
 
         constexpr _Ty* operator->() const noexcept { return Raw(); }
         constexpr _Ty& operator*() const noexcept { return *Raw(); }
-
-    private:
-        void Delete() noexcept
-        {
-            if (m_Ptr)
-                delete m_Ptr;
-        }
 
     private:
         template<typename _Ty2>
@@ -138,7 +148,7 @@ namespace Intricate
         }
 
         constexpr Ref(std::nullptr_t) noexcept : m_Ptr(nullptr), m_RefCount(nullptr) { };
-        Ref() = default;
+        constexpr Ref() noexcept = default;
         constexpr ~Ref() noexcept { DecRef(); }
 
         constexpr void Swap(Ref<_Ty>& other) noexcept
@@ -296,7 +306,7 @@ namespace Intricate
         }
 
         constexpr WeakRef(std::nullptr_t) noexcept : m_Ptr(nullptr), m_RefCount(nullptr) { };
-        WeakRef() = default;
+        constexpr WeakRef() noexcept = default;
         constexpr ~WeakRef() noexcept { Reset(); }
 
         constexpr void Swap(WeakRef<_Ty>& other) noexcept

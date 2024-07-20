@@ -93,3 +93,4 @@ workspace "Examples"
 INTRICATE_POINTERS_HPP_INCLUDE = "../../IntricatePointers/src/include"
 
 include "Example-Ref"
+include "Example-Scope"
