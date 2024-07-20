@@ -65,7 +65,7 @@ weakRef = nullptr;      // Release the weak reference (this only sets the intern
 ```
 
 ## License
-IntricateAllocator is licensed under the Apache-2.0 License. See [LICENSE](LICENSE).
+IntricatePointers is licensed under the Apache-2.0 License. See [LICENSE](LICENSE).
 
 ```
 Copyright 2024 Adam Foflonker
