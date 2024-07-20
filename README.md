@@ -33,7 +33,7 @@ struct MyStruct
 
 Ref<MyStruct> refPtr = CreateRef<MyStruct>(21, -21);          // Create a ref
 refPtr->A; refPtr->B;                                         // Access the object
-refPtr->RefCount();                                           // Get the pointer's reference count
+refPtr.RefCount();                                            // Get the pointer's reference count
 auto newRef = refPtr;                                         // Increment the reference count by copy-assignment
 refPtr = nullptr;                                             // Decrement the reference count
 newRef = nullptr;                                             // Now the reference count is 0 and the object is deleted
@@ -49,7 +49,7 @@ struct MyStruct
 
 Ref<MyStruct> strongRef = CreateRef<MyStruct>(21, -21);      // Create a ref
 WeakRef<MyStruct> weakRef = strongRef;                       // Create a weak ref to 'strongRef'
-weakRef->RefCount();                                         // Get the pointer's reference count
+weakRef.RefCount();                                          // Get the pointer's reference count
 
 // Access the weak ref by locking it.
 // This will increment the reference count while the locked ref is in scope to ensure that the resources aren't deleted
