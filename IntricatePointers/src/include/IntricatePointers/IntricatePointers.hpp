@@ -150,9 +150,28 @@ namespace Intricate
             }
         }
 
+        template<typename _Ty2, std::enable_if_t<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
+        constexpr void Reset(_Ty2* newPtr) noexcept
+        {
+            Ref<_Ty2>(newPtr).Swap(*this);
+        }
+
+        constexpr void Reset(_Ty* newPtr) noexcept
+        {
+            Ref<_Ty>(newPtr).Swap(*this);
+        }
+
         constexpr void Reset() noexcept
         {
             Ref<_Ty>(nullptr).Swap(*this);
+        }
+
+        constexpr _Ty* Release() noexcept
+        {
+            _Ty* res = m_Ptr;
+            Ref<_Ty>(nullptr).Swap(*this);
+
+            return res;
         }
 
         uint32_t RefCount() const noexcept { return m_RefCount ? m_RefCount->load() : 0; }
