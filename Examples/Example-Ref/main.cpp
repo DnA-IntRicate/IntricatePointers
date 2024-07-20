@@ -111,6 +111,19 @@ int main(int argc, char** argv)
         std::cout << "scopedRef I1: " << scopedRef->GetI1() << '\n';
     }
 
+    // Create a ref to an int and print the int by dereferencing the smart pointer.
+    Ref<int> intRef = CreateRef<int>(11);
+    std::cout << "intRef: " << *intRef << '\n';
+    std::cout << "intRef address: " << intRef << '\n';
+
+    // Release ownership of the pointer
+    int* intPtr = intRef.Release();
+    std::cout << "intPtr: " << *intPtr << '\n';
+    std::cout << "intPtr address: " << intPtr << '\n';
+
+    // Since intRef was allocated with new and we released its ownership of the pointer, we have to manually clean it up by using delete.
+    delete intPtr;
+
     std::cin.get();
     return 0;
 }

@@ -168,7 +168,7 @@ namespace Intricate
 
         constexpr _Ty* Release() noexcept
         {
-            _Ty* res = m_Ptr;
+            _Ty* res = std::exchange(m_Ptr, nullptr);
             Ref<_Ty>(nullptr).Swap(*this);
 
             return res;
