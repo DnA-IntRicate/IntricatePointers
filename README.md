@@ -9,7 +9,7 @@ A single-header file written in `C++20` implementing 3 different kinds of smart 
 - **WeakPtr**: A typedef for `std::weak_ptr`.
 
 ## Basic Usage
-### Scope:
+### [Scope](Examples/Example-Scope/main.cpp):
 ``` C++
 struct MyStruct
 {
@@ -22,7 +22,7 @@ Scope<MyStruct> scopePtr = CreateScope<MyStruct>(21, -21);    // Create a Scope
 scopePtr->A; scopePtr->B;                                     // Access the object
 scopePtr = nullptr;                                           // Delete the object
 ```
-### Ref:
+### [Ref](Examples/Example-Ref/main.cpp):
 ``` C++
 struct MyStruct
 {
@@ -38,7 +38,7 @@ auto newRef = refPtr;                                         // Increment the r
 refPtr = nullptr;                                             // Decrement the reference count
 newRef = nullptr;                                             // Now the reference count is 0 and the object is deleted
 ```
-### WeakRef:
+### [WeakRef](Examples/Example-WeakRef/main.cpp):
 ``` C++
 struct MyStruct
 {
