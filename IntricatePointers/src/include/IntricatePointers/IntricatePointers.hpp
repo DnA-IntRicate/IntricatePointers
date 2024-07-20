@@ -1,4 +1,6 @@
 #pragma once
+#include <ostream>
+#include <type_traits>
 #include <memory>
 #include <atomic>
 
