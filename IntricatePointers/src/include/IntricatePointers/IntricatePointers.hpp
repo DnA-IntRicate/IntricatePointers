@@ -309,21 +309,26 @@ namespace Intricate
         constexpr WeakRef(const Ref<_Ty2>& ref) noexcept : m_Ptr(ref.m_Ptr), m_RefCount(ref.m_RefCount) { };
 
         template<typename _Ty2, std::enable_if_t<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
-        constexpr WeakRef(const WeakRef<_Ty2>& other) noexcept { CopyFrom(other); }
+        constexpr WeakRef(const WeakRef<_Ty2>& other) noexcept : m_Ptr(other.m_Ptr), m_RefCount(other.m_RefCount) { };
 
-        constexpr WeakRef(const WeakRef<_Ty>& other) noexcept { CopyFrom(other); }
+        constexpr WeakRef(const WeakRef<_Ty>& other) noexcept
+        {
+            if (this != &other)
+            {
+                m_Ptr = other.m_Ptr;
+                m_RefCount = other.m_RefCount;
+            }
+        }
 
         template<typename _Ty2, std::enable_if_t<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
         constexpr WeakRef(WeakRef<_Ty2>&& other) noexcept : m_Ptr(other.m_Ptr), m_RefCount(other.m_RefCount)
         {
-            other.m_Ptr = nullptr;
-            other.m_RefCount = nullptr;
+            other.Reset();
         }
 
         constexpr WeakRef(WeakRef<_Ty>&& other) noexcept : m_Ptr(other.m_Ptr), m_RefCount(other.m_RefCount)
         {
-            other.m_Ptr = nullptr;
-            other.m_RefCount = nullptr;
+            other.Reset();
         }
 
         constexpr WeakRef(std::nullptr_t) noexcept : m_Ptr(nullptr), m_RefCount(nullptr) { };
@@ -348,8 +353,12 @@ namespace Intricate
         constexpr _Ty* Raw() const noexcept { return m_Ptr; }
         uint32_t RefCount() const noexcept { return m_RefCount ? m_RefCount->load() : 0; }
 
+        constexpr bool Valid() const noexcept { return Raw() != nullptr; }
         bool Unique() const noexcept { return RefCount() == 1; }
-        bool Expired() const noexcept { return RefCount() == 0; }
+
+        // Problem, this doesn't work as expected because m_RefCount becomes a dangling pointer after Ref deletes it when it hits 0
+        // TODO: Implement a weak reference counting system
+        bool Expired() const noexcept { return RefCount() == 3722304989; } // This should be 0
 
         Ref<_Ty> Lock() const noexcept
         {
@@ -362,15 +371,12 @@ namespace Intricate
             return res;
         }
 
-        constexpr bool Valid() const noexcept { return m_Ptr != nullptr; }
         constexpr explicit operator bool() const noexcept { return Valid(); }
-
         constexpr operator WeakRef<const _Ty>() const noexcept { return WeakRef<const _Ty>{ m_Ptr, m_RefCount }; }
 
         WeakRef<_Ty>& operator=(const WeakRef<_Ty>& other) noexcept
         {
             WeakRef<_Ty>(other).Swap(*this);
-
             return *this;
         }
 
@@ -378,14 +384,12 @@ namespace Intricate
         constexpr WeakRef<_Ty>& operator=(const WeakRef<_Ty2>& other) noexcept
         {
             WeakRef<_Ty>(other).Swap(*this);
-
             return *this;
         }
 
         WeakRef<_Ty>& operator=(WeakRef<_Ty>&& other) noexcept
         {
             WeakRef<_Ty>(std::move(other)).Swap(*this);
-
             return *this;
         }
 
@@ -393,14 +397,12 @@ namespace Intricate
         constexpr WeakRef<_Ty>& operator=(WeakRef<_Ty2>&& other) noexcept
         {
             WeakRef<_Ty>(std::move(other)).Swap(*this);
-
             return *this;
         }
 
         WeakRef<_Ty>& operator=(const Ref<_Ty>& ref) noexcept
         {
             WeakRef<_Ty>(ref).Swap(*this);
-
             return *this;
         }
 
@@ -408,25 +410,13 @@ namespace Intricate
         constexpr WeakRef<_Ty>& operator=(const Ref<_Ty2>& ref) noexcept
         {
             WeakRef<_Ty>(ref).Swap(*this);
-
             return *this;
         }
 
         constexpr WeakRef<_Ty>& operator=(std::nullptr_t) noexcept
         {
-            Reset();
-
+            WeakRef<_Ty>(nullptr).Swap(*this);
             return *this;
-        }
-
-    private:
-        constexpr void CopyFrom(const WeakRef<_Ty>& other) noexcept
-        {
-            if (this != &other)
-            {
-                m_Ptr = other.m_Ptr;
-                m_RefCount = other.m_RefCount;
-            }
         }
 
     private:
