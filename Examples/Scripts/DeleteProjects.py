@@ -17,6 +17,30 @@ def Delete():
         os.remove("Example-Ref/Example-Ref.vcxproj.user")
         print("Deleted: Example-Ref/Example-Ref.vcxproj.user")
 
+    if os.path.isfile("Example-Scope/Example-Scope.vcxproj"):
+        os.remove("Example-Scope/Example-Scope.vcxproj")
+        print("Deleted: Example-Scope/Example-Scope.vcxproj")
+
+    if os.path.isfile("Example-Scope/Example-Scope.vcxproj.filters"):
+        os.remove("Example-Scope/Example-Scope.vcxproj.filters")
+        print("Deleted: Example-Scope/Example-Scope.vcxproj.filters")
+
+    if os.path.isfile("Example-Scope/Example-Scope.vcxproj.user"):
+        os.remove("Example-Scope/Example-Scope.vcxproj.user")
+        print("Deleted: Example-Scope/Example-Scope.vcxproj.user")
+
+    if os.path.isfile("Example-WeakRef/Example-WeakRef.vcxproj"):
+        os.remove("Example-WeakRef/Example-WeakRef.vcxproj")
+        print("Deleted: Example-WeakRef/Example-WeakRef.vcxproj")
+
+    if os.path.isfile("Example-WeakRef/Example-WeakRef.vcxproj.filters"):
+        os.remove("Example-WeakRef/Example-WeakRef.vcxproj.filters")
+        print("Deleted: Example-WeakRef/Example-WeakRef.vcxproj.filters")
+
+    if os.path.isfile("Example-WeakRef/Example-WeakRef.vcxproj.user"):
+        os.remove("Example-WeakRef/Example-WeakRef.vcxproj.user")
+        print("Deleted: Example-WeakRef/Example-WeakRef.vcxproj.user")
+
 if __name__ == "__main__":
     os.chdir("../")
     print("Deleting Visual Studio projects...")
