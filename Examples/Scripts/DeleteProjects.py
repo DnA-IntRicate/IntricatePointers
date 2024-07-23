@@ -41,6 +41,18 @@ def Delete():
         os.remove("Example-WeakRef/Example-WeakRef.vcxproj.user")
         print("Deleted: Example-WeakRef/Example-WeakRef.vcxproj.user")
 
+    if os.path.isfile("Test-RefMemoryLeak/Test-RefMemoryLeak.vcxproj"):
+        os.remove("Test-RefMemoryLeak/Test-RefMemoryLeak.vcxproj")
+        print("Deleted: Test-RefMemoryLeak/Test-RefMemoryLeak.vcxproj")
+
+    if os.path.isfile("Test-RefMemoryLeak/Test-RefMemoryLeak.vcxproj.filters"):
+        os.remove("Test-RefMemoryLeak/Test-RefMemoryLeak.vcxproj.filters")
+        print("Deleted: Test-RefMemoryLeak/Test-RefMemoryLeak.vcxproj.filters")
+
+    if os.path.isfile("Test-RefMemoryLeak/Test-RefMemoryLeak.vcxproj.user"):
+        os.remove("Test-RefMemoryLeak/Test-RefMemoryLeak.vcxproj.user")
+        print("Deleted: Test-RefMemoryLeak/Test-RefMemoryLeak.vcxproj.user")
+
 if __name__ == "__main__":
     os.chdir("../")
     print("Deleting Visual Studio projects...")
