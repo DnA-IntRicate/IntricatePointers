@@ -123,6 +123,9 @@ int main(int argc, char** argv)
         lockedRef->DoSomething();
         lockedRef->DoSomethingElse();
         std::cout << "lockedRef Number: " << lockedRef->GetNumber() << '\n';
+        std::cout << "Weak: " << lockedRef.WR() << '\n';
+        std::cout << "Weak: " << baseClassWeakRef.WR() << '\n';
+
     } // The locked reference will fall out of scope here decrementing the reference count to 0 causing the resources to be released
 
     // The 'baseClassWeakRef' should now be expired, if we try to lock an expired WeakRef, it will return nullptr

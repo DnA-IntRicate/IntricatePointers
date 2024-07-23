@@ -92,7 +92,7 @@ int main(int argc, char** argv)
     // get free'd yet since the reference count hasn't yet hit 0
     constructedRefCopy = nullptr;
     std::cout << "constructedRef ref-count after release: " << constructedRef.RefCount() << '\n';
-
+    
     // Once we release the reference held by constructedRef, the reference count will hit 0 and the data will be free'd
     constructedRef = nullptr;
 

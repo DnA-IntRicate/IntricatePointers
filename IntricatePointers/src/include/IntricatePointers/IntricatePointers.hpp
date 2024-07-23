@@ -128,57 +128,217 @@ namespace Intricate
         return static_cast<_WantedType*>(scope.Raw());
     }
 
-    // This forward declaration is required by Ref
+    // TODO: Fix these comments
+    // Forward decl
+    template<typename _Ty>
+    class Ref;
+
     template<typename _Ty>
     class WeakRef;
 
+    // Base class for Ref and WeakRef
+    // std::remove_extent<> will need to be used in future to support array types.
     template<typename _Ty>
-    class Ref
+    class _RefBase
     {
+    protected:
+        constexpr _RefBase(std::nullptr_t) noexcept : m_Ptr(nullptr), m_RefCount(nullptr), m_WeakRefCount(nullptr) { };
+        constexpr _RefBase() noexcept = default;
+        constexpr ~_RefBase() noexcept = default;
+
     public:
-        constexpr explicit Ref(_Ty* ptr) noexcept : m_Ptr(ptr) { m_RefCount = (ptr) ? new std::atomic_uint(1) : nullptr; }
+        _RefBase(const _RefBase&) = delete;
+        _RefBase& operator=(const _RefBase&) = delete;
 
-        template<typename _Ty2, std::enable_if_t<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
-        constexpr explicit Ref(_Ty2* ptr = nullptr) noexcept : m_Ptr(ptr) { m_RefCount = (ptr) ? new std::atomic_uint(1) : nullptr; }
+    protected:
+        constexpr _Ty* _Raw() const noexcept { return m_Ptr; }
 
-        template<typename _Ty2, std::enable_if_t<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
-        constexpr Ref(const Ref<_Ty2>& other) noexcept : m_Ptr(other.m_Ptr), m_RefCount(other.m_RefCount) { IncRef(); }
-
-        Ref(const Ref<_Ty>& other) noexcept
+        constexpr void _Swap(_RefBase<_Ty>& other) noexcept
         {
-            if (this != &other)
-            {
-                m_Ptr = other.m_Ptr;
-                m_RefCount = other.m_RefCount;
+            std::swap(m_Ptr, other.m_Ptr);
+            std::swap(m_RefCount, other.m_RefCount);
+            std::swap(m_WeakRefCount, other.m_WeakRefCount);
+        }
 
-                IncRef();
+        uint32_t _RefCount() const { return m_RefCount ? m_RefCount->load() : 0; }
+        uint32_t _WeakRefCount() const { return m_WeakRefCount ? m_WeakRefCount->load() : 0; }
+
+        void _IncRef() noexcept
+        {
+            if (m_RefCount)
+                (void)m_RefCount->fetch_add(1, std::memory_order_relaxed);
+        }
+
+        void _DecRef() noexcept
+        {
+            if (m_RefCount && m_RefCount->fetch_sub(1, std::memory_order_acq_rel) == 1)
+            {
+                std::atomic_thread_fence(std::memory_order_acquire);
+
+                if (m_Ptr)
+                {
+                    delete m_Ptr;
+                    m_Ptr = nullptr;
+                }
+
+                // TODO: FIX THIS CRASHING WHEN DELETING BOTH POINTERS SEQUENTIALLY
+                if (m_WeakRefCount->load() == 0)
+                {
+                    delete m_RefCount;
+                    m_RefCount = nullptr;
+
+                    delete m_WeakRefCount;
+                    m_WeakRefCount = nullptr;
+                }
+
+            //    std::atomic_thread_fence(std::memory_order_acquire);
+            //    if (_WeakRefCount() == 0)
+            //    {
+            //        delete m_RefCount;
+            //        m_RefCount = nullptr;
+            //
+            //    //    if (m_WeakRefCount)
+            //    //    {
+            //    //        delete m_WeakRefCount;
+            //    //        m_WeakRefCount = nullptr;
+            //    //    }
+            //    }
             }
         }
 
+        void _IncWeakRef() noexcept
+        {
+            if (m_WeakRefCount)
+                (void)m_WeakRefCount->fetch_add(1, std::memory_order_relaxed);
+        }
+
+        void _DecWeakRef() noexcept
+        {
+            if (m_WeakRefCount)
+                (void)m_WeakRefCount->fetch_sub(1, std::memory_order_relaxed);
+
+        //    if (m_WeakRefCount && m_WeakRefCount->fetch_sub(1, std::memory_order_acq_rel) == 1)
+        //    {
+        //        delete m_WeakRefCount;
+        //        m_WeakRefCount = nullptr;
+        //    }
+        }
+
+        template<typename _Ty2, std::enable_if<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
+        constexpr void _ConstructFromRaw(_Ty2* ptr) noexcept
+        {
+            m_Ptr = static_cast<_Ty>(ptr);
+            m_RefCount = m_Ptr ? new std::atomic_uint(1) : nullptr;
+            m_WeakRefCount = m_Ptr ? new std::atomic_uint(0) : nullptr;
+        }
+
+        constexpr void _ConstructFromRaw(_Ty* ptr) noexcept
+        {
+            m_Ptr = ptr;
+            m_RefCount = m_Ptr ? new std::atomic_uint(1) : nullptr;
+            m_WeakRefCount = m_Ptr ? new std::atomic_uint(0) : nullptr;
+        }
+
+        template<typename _Ty2>
+        constexpr void _MoveConstructFrom(_RefBase<_Ty2>&& ptr) noexcept
+        {
+            m_Ptr = static_cast<_Ty*>(ptr.m_Ptr);
+            m_RefCount = ptr.m_RefCount;
+            m_WeakRefCount = ptr.m_WeakRefCount;
+
+            ptr.m_Ptr = nullptr;
+            ptr.m_RefCount = nullptr;
+            ptr.m_WeakRefCount = nullptr;
+        }
+
+        template<typename _Ty2>
+        constexpr void _CopyConstructFrom(const Ref<_Ty2>& ptr) noexcept
+        {
+            m_Ptr = static_cast<_Ty*>(ptr.m_Ptr);
+            m_RefCount = ptr.m_RefCount;
+            m_WeakRefCount = ptr.m_WeakRefCount;
+
+            _IncRef();
+        }
+
+        template<typename _Ty2>
+        constexpr void _WeaklyConstructFrom(const WeakRef<_Ty2>& weak) noexcept
+        {
+         //   weak._IncWeakRef();
+
+            m_Ptr = static_cast<_Ty*>(weak.m_Ptr);
+            m_RefCount = weak.m_RefCount;
+            m_WeakRefCount = weak.m_WeakRefCount;
+
+            _IncWeakRef();
+        }
+
+        template<typename _Ty2>
+        constexpr void _WeaklyConstructFrom(const Ref<_Ty2>& ref) noexcept
+        {
+            m_Ptr = static_cast<_Ty*>(ref.m_Ptr);
+            m_RefCount = ref.m_RefCount;
+            m_WeakRefCount = ref.m_WeakRefCount;
+
+            _IncWeakRef();
+        }
+
+        template<typename _Ty2>
+        constexpr void _ConstructFromWeak(const WeakRef<_Ty2>& weak) noexcept
+        {
+            m_Ptr = static_cast<_Ty*>(weak.m_Ptr);
+            m_RefCount = weak.m_RefCount;
+            m_WeakRefCount = weak.m_RefCount;
+
+            _IncRef();
+        }
+
+    protected:
+        _Ty* m_Ptr = nullptr;
+        std::atomic_uint* m_RefCount = nullptr;
+        std::atomic_uint* m_WeakRefCount = nullptr;
+
+    private:
+        // Do I need this?
+        template<typename _Ty2>
+        friend class _RefBase;
+
+        friend class Ref<_Ty>;
+        friend class WeakRef<_Ty>;
+    };
+
+    template<typename _Ty>
+    class Ref : public _RefBase<_Ty>
+    {
+    public:
+        constexpr explicit Ref(_Ty* ptr) noexcept { this->_ConstructFromRaw(ptr); }
+
         template<typename _Ty2, std::enable_if_t<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
-        constexpr Ref(Ref<_Ty2>&& other) noexcept : m_Ptr(other.m_Ptr), m_RefCount(other.m_RefCount)
-        {
-            other.m_Ptr = nullptr;
-            other.m_RefCount = nullptr;
-        }
+        constexpr explicit Ref(_Ty2* ptr) noexcept { this->_ConstructFromRaw(ptr); }
 
-        constexpr Ref(Ref<_Ty>&& other) noexcept : m_Ptr(other.m_Ptr), m_RefCount(other.m_RefCount)
-        {
-            other.m_Ptr = nullptr;
-            other.m_RefCount = nullptr;
-        }
+        template<typename _Ty2, std::enable_if_t<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
+        constexpr Ref(const Ref<_Ty2>& other) noexcept { this->_CopyConstructFrom(other); }
 
-        constexpr Ref(std::nullptr_t) noexcept : m_Ptr(nullptr), m_RefCount(nullptr) { };
+        Ref(const Ref<_Ty>& other) noexcept { this->_CopyConstructFrom(other); }
+
+        template<typename _Ty2, std::enable_if_t<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
+        constexpr Ref(Ref<_Ty2>&& other) noexcept { this->_MoveConstructFrom(std::move(other)); }
+
+        constexpr Ref(Ref<_Ty>&& other) noexcept { this->_MoveConstructFrom(std::move(other)); }
+
+        template<typename _Ty2, std::enable_if_t<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
+        constexpr explicit Ref(const WeakRef<_Ty2>& weak) noexcept { this->_ConstructFromWeak(weak); }
+
+        constexpr explicit Ref(const WeakRef<_Ty>& weak) noexcept { this->_ConstructFromWeak(weak); }
+
+        constexpr Ref(std::nullptr_t) noexcept : _RefBase<_Ty>(nullptr) { };
         constexpr Ref() noexcept = default;
-        constexpr ~Ref() noexcept { DecRef(); }
+        constexpr ~Ref() noexcept { this->_DecRef(); }
 
         constexpr void Swap(Ref<_Ty>& other) noexcept
         {
             if (this != &other)
-            {
-                std::swap(m_Ptr, other.m_Ptr);
-                std::swap(m_RefCount, other.m_RefCount);
-            }
+                this->_Swap(other);
         }
 
         template<typename _Ty2, std::enable_if_t<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
@@ -199,20 +359,22 @@ namespace Intricate
 
         constexpr _Ty* Release() noexcept
         {
-            _Ty* res = std::exchange(m_Ptr, nullptr);
+            _Ty* res = std::exchange(this->m_Ptr, nullptr);
             Ref<_Ty>(nullptr).Swap(*this);
 
             return res;
         }
 
-        uint32_t RefCount() const noexcept { return m_RefCount ? m_RefCount->load() : 0; }
+        // TEMP
+        uint32_t WR() const noexcept { return this->_WeakRefCount(); }
+        uint32_t RefCount() const noexcept { return this->_RefCount(); }
         bool Unique() const noexcept { return RefCount() == 1; }
 
-        constexpr _Ty* Raw() const noexcept { return m_Ptr; }
+        constexpr _Ty* Raw() const noexcept { return this->_Raw(); }
         constexpr bool Valid() const noexcept { return Raw() != nullptr; }
 
         constexpr explicit operator bool() const noexcept { return Valid(); }
-        constexpr operator Ref<const _Ty>() const noexcept { return Ref<const _Ty>{ m_Ptr, m_RefCount }; }
+        constexpr operator Ref<const _Ty>() const noexcept { return Ref<const _Ty>{ this->m_Ptr, this->m_RefCount, this->m_WeakRefCount }; }
 
         Ref<_Ty>& operator=(const Ref<_Ty>& other) noexcept
         {
@@ -246,42 +408,12 @@ namespace Intricate
             return *this;
         }
 
-        constexpr _Ty* operator->() const noexcept { return Raw(); }
+        constexpr _Ty* operator->() const noexcept { return this->Raw(); }
         constexpr _Ty& operator*() const noexcept { return *Raw(); }
-
-    private:
-        void IncRef() noexcept
-        {
-            if (m_RefCount)
-                (void)m_RefCount->fetch_add(1, std::memory_order_relaxed);
-        }
-
-        void DecRef() noexcept
-        {
-            // Decrement the reference count by 1 and check if the reference count was 1 before decrementing
-            if (m_RefCount && m_RefCount->fetch_sub(1, std::memory_order_acq_rel) == 1)
-            {
-                std::atomic_thread_fence(std::memory_order_acquire);
-
-                if (m_Ptr)
-                    delete m_Ptr;
-
-                delete m_RefCount;
-            }
-        }
-
-        constexpr void ConstructFromWeakRef(const WeakRef<_Ty>* weakRef) noexcept { *this = *(Ref<_Ty>*)(weakRef); }
 
     private:
         template<typename _Ty2>
         friend class Ref;
-
-        template<typename _Ty2>
-        friend class WeakRef;
-
-    private:
-        _Ty* m_Ptr = nullptr;
-        std::atomic_uint* m_RefCount = nullptr;
     };
 
     template<typename _Ty, typename... _Args, std::enable_if_t<std::negation_v<std::is_array<_Ty>>, int> = 0>
@@ -297,68 +429,50 @@ namespace Intricate
     }
 
     template<typename _Ty>
-    class WeakRef
+    class WeakRef : public _RefBase<_Ty>
     {
     public:
-        constexpr WeakRef(const Ref<_Ty>& ref) noexcept : m_Ptr(ref.m_Ptr), m_RefCount(ref.m_RefCount) { };
+        constexpr WeakRef(const Ref<_Ty>& ref) noexcept { this->_WeaklyConstructFrom(ref); }
 
         template<typename _Ty2, std::enable_if_t<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
-        constexpr WeakRef(const Ref<_Ty>& ref) noexcept : m_Ptr(ref.m_Ptr), m_RefCount(ref.m_RefCount) { };
+        constexpr WeakRef(const Ref<_Ty2>& ref) noexcept { this->_WeaklyConstructFrom(ref); }
 
         template<typename _Ty2, std::enable_if_t<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
-        constexpr WeakRef(const Ref<_Ty2>& ref) noexcept : m_Ptr(ref.m_Ptr), m_RefCount(ref.m_RefCount) { };
+        constexpr WeakRef(const WeakRef<_Ty2>& other) noexcept { this->_WeaklyConstructFrom(other); }
+
+        constexpr WeakRef(const WeakRef<_Ty>& other) noexcept { this->_WeaklyConstructFrom(other); }
 
         template<typename _Ty2, std::enable_if_t<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
-        constexpr WeakRef(const WeakRef<_Ty2>& other) noexcept : m_Ptr(other.m_Ptr), m_RefCount(other.m_RefCount) { };
+        constexpr WeakRef(WeakRef<_Ty2>&& other) noexcept { this->_MoveConstructFrom(std::move(other)); }
 
-        constexpr WeakRef(const WeakRef<_Ty>& other) noexcept
-        {
-            if (this != &other)
-            {
-                m_Ptr = other.m_Ptr;
-                m_RefCount = other.m_RefCount;
-            }
-        }
+        constexpr WeakRef(WeakRef<_Ty>&& other) noexcept { this->_MoveConstructFrom(std::move(other)); }
 
-        template<typename _Ty2, std::enable_if_t<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
-        constexpr WeakRef(WeakRef<_Ty2>&& other) noexcept : m_Ptr(other.m_Ptr), m_RefCount(other.m_RefCount)
-        {
-            other.Reset();
-        }
-
-        constexpr WeakRef(WeakRef<_Ty>&& other) noexcept : m_Ptr(other.m_Ptr), m_RefCount(other.m_RefCount)
-        {
-            other.Reset();
-        }
-
-        constexpr WeakRef(std::nullptr_t) noexcept : m_Ptr(nullptr), m_RefCount(nullptr) { };
+        constexpr WeakRef(std::nullptr_t) noexcept : _RefBase<_Ty>(nullptr) { };
         constexpr WeakRef() noexcept = default;
-        constexpr ~WeakRef() noexcept { Reset(); }
+        constexpr ~WeakRef() noexcept { this->_DecWeakRef(); }
 
         constexpr void Swap(WeakRef<_Ty>& other) noexcept
         {
             if (this != &other)
-            {
-                std::swap(m_Ptr, other.m_Ptr);
-                std::swap(m_RefCount, other.m_RefCount);
-            }
+                this->_Swap(other);
         }
 
         constexpr void Reset() noexcept
         {
-            m_Ptr = nullptr;
-            m_RefCount = nullptr;
+            WeakRef<_Ty>(nullptr).Swap(*this);
         }
 
-        constexpr _Ty* Raw() const noexcept { return m_Ptr; }
-        uint32_t RefCount() const noexcept { return m_RefCount ? m_RefCount->load() : 0; }
-
-        constexpr bool Valid() const noexcept { return Raw() != nullptr; }
+        // TEMP
+        uint32_t WR() const noexcept { return this->_WeakRefCount(); }
+        uint32_t RefCount() const noexcept { return this->_RefCount(); }
         bool Unique() const noexcept { return RefCount() == 1; }
 
         // Problem, this doesn't work as expected because m_RefCount becomes a dangling pointer after Ref deletes it when it hits 0
         // TODO: Implement a weak reference counting system
-        bool Expired() const noexcept { return RefCount() == 3722304989; } // This should be 0
+        bool Expired() const noexcept { return RefCount() == 0; } // This should be 0
+
+        constexpr _Ty* Raw() const noexcept { return this->_Raw(); }
+        constexpr bool Valid() const noexcept { return Raw() != nullptr; }
 
         Ref<_Ty> Lock() const noexcept
         {
@@ -366,13 +480,13 @@ namespace Intricate
                 return nullptr;
 
             Ref<_Ty> res;
-            res.ConstructFromWeakRef(this);
+            res._ConstructFromWeak(*this);
 
             return res;
         }
 
         constexpr explicit operator bool() const noexcept { return Valid(); }
-        constexpr operator WeakRef<const _Ty>() const noexcept { return WeakRef<const _Ty>{ m_Ptr, m_RefCount }; }
+        constexpr operator WeakRef<const _Ty>() const noexcept { return WeakRef<const _Ty>{ this->m_Ptr, this->m_RefCount, this->m_WeakRefCount }; }
 
         WeakRef<_Ty>& operator=(const WeakRef<_Ty>& other) noexcept
         {
@@ -420,12 +534,45 @@ namespace Intricate
         }
 
     private:
+    //    void IncWRef() noexcept
+    //    {
+    //        if (m_WeakRefCount)
+    //            (void)m_WeakRefCount->fetch_add(1, std::memory_order_relaxed);
+    //    }
+    //
+    //    void DecWRef() noexcept
+    //    {
+    //        // We can't delete m_Ptr here since this class does not own it.
+    //        if (m_WeakRefCount && m_WeakRefCount->fetch_sub(1, std::memory_order_acq_rel) == 1)
+    //        {
+    //            delete m_WeakRefCount;
+    //            m_WeakRefCount = nullptr;
+    //        }
+    //    }
+
+    //    void ConstructFromRef(const Ref<_Ty>& ref)
+    //    {
+    //        m_Ptr = ref.m_Ptr;
+    //        m_RefCount = ref.m_RefCount;
+    //
+    //        if (!ref.m_WeakRefCount)
+    //            ref.m_WeakRefCount = new std::atomic_uint(0);  // Why 0?
+    //
+    //        // IncWRef
+    //        m_WeakRefCount = ref.m_WeakRefCount;
+    //        IncWRef(); // Should we inc from here or inc it on the ref object?
+    //    }
+
+    private:
         template<typename _Ty2>
         friend class WeakRef;
 
-    private:
-        _Ty* m_Ptr;
-        std::atomic_uint* m_RefCount;
+//    private:
+//        _Ty* m_Ptr = nullptr;
+//        std::atomic_uint* m_RefCount = nullptr;
+//
+//        // Prototype for the weak reference count system
+//        std::atomic_uint* m_WeakRefCount = nullptr;
     };
 
     template<typename _Ty>
