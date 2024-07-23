@@ -3,13 +3,13 @@
  * A single-header containing smart pointer implementations in C++20
  * ------------------------------------------------------------------------
  * Copyright 2024 Adam Foflonker
- * 
+ *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  * http ://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -128,8 +128,6 @@ namespace Intricate
         return static_cast<_WantedType*>(scope.Raw());
     }
 
-    // TODO: Fix these comments
-    // Forward decl
     template<typename _Ty>
     class Ref;
 
@@ -147,8 +145,8 @@ namespace Intricate
         constexpr ~_RefBase() noexcept = default;
 
     public:
-        _RefBase(const _RefBase&) = delete;
-        _RefBase& operator=(const _RefBase&) = delete;
+        _RefBase(const _RefBase<_Ty>&) = delete;
+        _RefBase<_Ty>& operator=(const _RefBase<_Ty>&) = delete;
 
     protected:
         constexpr _Ty* _Raw() const noexcept { return m_Ptr; }
@@ -171,7 +169,9 @@ namespace Intricate
 
         void _DecRef() noexcept
         {
-            if (m_RefCount && m_RefCount->fetch_sub(1, std::memory_order_acq_rel) == 1)
+            bool noWeakRefs = _WeakRefCount() == 0;
+
+            if (m_RefCount && (m_RefCount->fetch_sub(1, std::memory_order_acq_rel) == 1))
             {
                 std::atomic_thread_fence(std::memory_order_acquire);
 
@@ -181,28 +181,20 @@ namespace Intricate
                     m_Ptr = nullptr;
                 }
 
-                // TODO: FIX THIS CRASHING WHEN DELETING BOTH POINTERS SEQUENTIALLY
-                if (m_WeakRefCount->load() == 0)
+                if (noWeakRefs)
                 {
-                    delete m_RefCount;
-                    m_RefCount = nullptr;
+                    if (m_RefCount)
+                    {
+                        delete m_RefCount;
+                        m_RefCount = nullptr;
+                    }
 
-                    delete m_WeakRefCount;
-                    m_WeakRefCount = nullptr;
+                    if (m_WeakRefCount)
+                    {
+                        delete m_WeakRefCount;
+                        m_WeakRefCount = nullptr;
+                    }
                 }
-
-            //    std::atomic_thread_fence(std::memory_order_acquire);
-            //    if (_WeakRefCount() == 0)
-            //    {
-            //        delete m_RefCount;
-            //        m_RefCount = nullptr;
-            //
-            //    //    if (m_WeakRefCount)
-            //    //    {
-            //    //        delete m_WeakRefCount;
-            //    //        m_WeakRefCount = nullptr;
-            //    //    }
-            //    }
             }
         }
 
@@ -214,14 +206,24 @@ namespace Intricate
 
         void _DecWeakRef() noexcept
         {
-            if (m_WeakRefCount)
-                (void)m_WeakRefCount->fetch_sub(1, std::memory_order_relaxed);
+            bool expired = _RefCount() == 0;
 
-        //    if (m_WeakRefCount && m_WeakRefCount->fetch_sub(1, std::memory_order_acq_rel) == 1)
-        //    {
-        //        delete m_WeakRefCount;
-        //        m_WeakRefCount = nullptr;
-        //    }
+            if (m_WeakRefCount && (m_WeakRefCount->fetch_sub(1, std::memory_order_acq_rel) == 1) && expired)
+            {
+                std::atomic_thread_fence(std::memory_order_acquire);
+
+                if (m_RefCount)
+                {
+                    delete m_RefCount;
+                    m_RefCount = nullptr;
+                }
+
+                if (m_WeakRefCount)
+                {
+                    delete m_WeakRefCount;
+                    m_WeakRefCount = nullptr;
+                }
+            }
         }
 
         template<typename _Ty2, std::enable_if<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
@@ -264,8 +266,6 @@ namespace Intricate
         template<typename _Ty2>
         constexpr void _WeaklyConstructFrom(const WeakRef<_Ty2>& weak) noexcept
         {
-         //   weak._IncWeakRef();
-
             m_Ptr = static_cast<_Ty*>(weak.m_Ptr);
             m_RefCount = weak.m_RefCount;
             m_WeakRefCount = weak.m_WeakRefCount;
@@ -299,7 +299,6 @@ namespace Intricate
         std::atomic_uint* m_WeakRefCount = nullptr;
 
     private:
-        // Do I need this?
         template<typename _Ty2>
         friend class _RefBase;
 
@@ -365,8 +364,6 @@ namespace Intricate
             return res;
         }
 
-        // TEMP
-        uint32_t WR() const noexcept { return this->_WeakRefCount(); }
         uint32_t RefCount() const noexcept { return this->_RefCount(); }
         bool Unique() const noexcept { return RefCount() == 1; }
 
@@ -462,14 +459,9 @@ namespace Intricate
             WeakRef<_Ty>(nullptr).Swap(*this);
         }
 
-        // TEMP
-        uint32_t WR() const noexcept { return this->_WeakRefCount(); }
         uint32_t RefCount() const noexcept { return this->_RefCount(); }
         bool Unique() const noexcept { return RefCount() == 1; }
-
-        // Problem, this doesn't work as expected because m_RefCount becomes a dangling pointer after Ref deletes it when it hits 0
-        // TODO: Implement a weak reference counting system
-        bool Expired() const noexcept { return RefCount() == 0; } // This should be 0
+        bool Expired() const noexcept { return RefCount() == 0; }
 
         constexpr _Ty* Raw() const noexcept { return this->_Raw(); }
         constexpr bool Valid() const noexcept { return Raw() != nullptr; }
@@ -534,45 +526,8 @@ namespace Intricate
         }
 
     private:
-    //    void IncWRef() noexcept
-    //    {
-    //        if (m_WeakRefCount)
-    //            (void)m_WeakRefCount->fetch_add(1, std::memory_order_relaxed);
-    //    }
-    //
-    //    void DecWRef() noexcept
-    //    {
-    //        // We can't delete m_Ptr here since this class does not own it.
-    //        if (m_WeakRefCount && m_WeakRefCount->fetch_sub(1, std::memory_order_acq_rel) == 1)
-    //        {
-    //            delete m_WeakRefCount;
-    //            m_WeakRefCount = nullptr;
-    //        }
-    //    }
-
-    //    void ConstructFromRef(const Ref<_Ty>& ref)
-    //    {
-    //        m_Ptr = ref.m_Ptr;
-    //        m_RefCount = ref.m_RefCount;
-    //
-    //        if (!ref.m_WeakRefCount)
-    //            ref.m_WeakRefCount = new std::atomic_uint(0);  // Why 0?
-    //
-    //        // IncWRef
-    //        m_WeakRefCount = ref.m_WeakRefCount;
-    //        IncWRef(); // Should we inc from here or inc it on the ref object?
-    //    }
-
-    private:
         template<typename _Ty2>
         friend class WeakRef;
-
-//    private:
-//        _Ty* m_Ptr = nullptr;
-//        std::atomic_uint* m_RefCount = nullptr;
-//
-//        // Prototype for the weak reference count system
-//        std::atomic_uint* m_WeakRefCount = nullptr;
     };
 
     template<typename _Ty>
