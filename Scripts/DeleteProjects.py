@@ -27,6 +27,10 @@ def DeleteTests():
     DeleteFile("Tests/Test-RefMemoryLeak/Test-RefMemoryLeak.vcxproj.filters")
     DeleteFile("Tests/Test-RefMemoryLeak/Test-RefMemoryLeak.vcxproj.user")
 
+    DeleteFile("Tests/Test-ScopeMemoryLeak/Test-ScopeMemoryLeak.vcxproj")
+    DeleteFile("Tests/Test-ScopeMemoryLeak/Test-ScopeMemoryLeak.vcxproj.filters")
+    DeleteFile("Tests/Test-ScopeMemoryLeak/Test-ScopeMemoryLeak.vcxproj.user")
+
     DeleteFile("Tests/Test-WeakRefMemoryLeak/Test-WeakRefMemoryLeak.vcxproj")
     DeleteFile("Tests/Test-WeakRefMemoryLeak/Test-WeakRefMemoryLeak.vcxproj.filters")
     DeleteFile("Tests/Test-WeakRefMemoryLeak/Test-WeakRefMemoryLeak.vcxproj.user")
