@@ -1,4 +1,4 @@
-workspace "Examples"
+workspace "Tests"
     architecture "x86_64"
 
     configurations
@@ -84,6 +84,4 @@ workspace "Examples"
             "NoIncrementalLink"
         }
 
-include "Example-Ref"
-include "Example-Scope"
-include "Example-WeakRef"
+include "Test-RefMemoryLeak"
