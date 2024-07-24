@@ -85,3 +85,4 @@ workspace "Tests"
         }
 
 include "Test-RefMemoryLeak"
+include "Test-WeakRefMemoryLeak"
