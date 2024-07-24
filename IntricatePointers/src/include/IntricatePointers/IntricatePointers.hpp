@@ -78,8 +78,15 @@ namespace Intricate
             return std::exchange(m_Ptr, nullptr);
         }
 
-        constexpr _Ty* Raw() const noexcept { return m_Ptr; }
-        constexpr bool Valid() const noexcept { return Raw() != nullptr; }
+        constexpr _Ty* Raw() const noexcept
+        {
+            return m_Ptr;
+        }
+
+        constexpr bool Valid() const noexcept
+        {
+            return Raw() != nullptr;
+        }
 
         constexpr explicit operator bool() const noexcept { return Valid(); }
 
@@ -149,7 +156,10 @@ namespace Intricate
         _RefBase<_Ty>& operator=(const _RefBase<_Ty>&) = delete;
 
     protected:
-        constexpr _Ty* _Raw() const noexcept { return m_Ptr; }
+        constexpr _Ty* _Raw() const noexcept
+        {
+            return m_Ptr;
+        }
 
         constexpr void _Swap(_RefBase<_Ty>& other) noexcept
         {
@@ -158,8 +168,15 @@ namespace Intricate
             std::swap(m_WeakRefCount, other.m_WeakRefCount);
         }
 
-        uint32_t _RefCount() const { return m_RefCount ? m_RefCount->load() : 0; }
-        uint32_t _WeakRefCount() const { return m_WeakRefCount ? m_WeakRefCount->load() : 0; }
+        uint32_t _RefCount() const noexcept
+        {
+            return m_RefCount ? m_RefCount->load() : 0;
+        }
+
+        uint32_t _WeakRefCount() const noexcept
+        {
+            return m_WeakRefCount ? m_WeakRefCount->load() : 0;
+        }
 
         void _IncRef() noexcept
         {
@@ -226,17 +243,10 @@ namespace Intricate
             }
         }
 
-        template<typename _Ty2, std::enable_if<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
+        template<typename _Ty2>
         constexpr void _ConstructFromRaw(_Ty2* ptr) noexcept
         {
-            m_Ptr = static_cast<_Ty>(ptr);
-            m_RefCount = m_Ptr ? new std::atomic_uint(1) : nullptr;
-            m_WeakRefCount = m_Ptr ? new std::atomic_uint(0) : nullptr;
-        }
-
-        constexpr void _ConstructFromRaw(_Ty* ptr) noexcept
-        {
-            m_Ptr = ptr;
+            m_Ptr = static_cast<_Ty*>(ptr);
             m_RefCount = m_Ptr ? new std::atomic_uint(1) : nullptr;
             m_WeakRefCount = m_Ptr ? new std::atomic_uint(0) : nullptr;
         }
@@ -364,11 +374,25 @@ namespace Intricate
             return res;
         }
 
-        uint32_t RefCount() const noexcept { return this->_RefCount(); }
-        bool Unique() const noexcept { return RefCount() == 1; }
+        uint32_t RefCount() const noexcept
+        {
+            return this->_RefCount();
+        }
 
-        constexpr _Ty* Raw() const noexcept { return this->_Raw(); }
-        constexpr bool Valid() const noexcept { return Raw() != nullptr; }
+        bool Unique() const noexcept
+        {
+            return RefCount() == 1;
+        }
+
+        constexpr _Ty* Raw() const noexcept
+        {
+            return this->_Raw();
+        }
+
+        constexpr bool Valid() const noexcept
+        {
+            return Raw() != nullptr;
+        }
 
         constexpr explicit operator bool() const noexcept { return Valid(); }
         constexpr operator Ref<const _Ty>() const noexcept { return Ref<const _Ty>{ this->m_Ptr, this->m_RefCount, this->m_WeakRefCount }; }
@@ -459,12 +483,30 @@ namespace Intricate
             WeakRef<_Ty>(nullptr).Swap(*this);
         }
 
-        uint32_t RefCount() const noexcept { return this->_RefCount(); }
-        bool Unique() const noexcept { return RefCount() == 1; }
-        bool Expired() const noexcept { return RefCount() == 0; }
+        uint32_t RefCount() const noexcept
+        {
+            return this->_RefCount();
+        }
 
-        constexpr _Ty* Raw() const noexcept { return this->_Raw(); }
-        constexpr bool Valid() const noexcept { return Raw() != nullptr; }
+        bool Unique() const noexcept
+        {
+            return RefCount() == 1;
+        }
+
+        bool Expired() const noexcept
+        {
+            return RefCount() == 0;
+        }
+
+        constexpr _Ty* Raw() const noexcept
+        {
+            return this->_Raw();
+        }
+
+        constexpr bool Valid() const noexcept
+        {
+            return Raw() != nullptr;
+        }
 
         Ref<_Ty> Lock() const noexcept
         {
