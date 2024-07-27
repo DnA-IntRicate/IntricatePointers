@@ -208,7 +208,7 @@ template<typename _Ty>
 class _RefBase
 {
 protected:
-    constexpr _RefBase(std::nullptr_t) noexcept : m_Ptr(nullptr), m_RefCount(nullptr)/*, m_WeakRefCount(nullptr)*/ { };
+    constexpr _RefBase(std::nullptr_t) noexcept : m_Ptr(nullptr), m_RefCount(nullptr) { };
     constexpr _RefBase() noexcept = default;
     constexpr ~_RefBase() noexcept = default;
 
@@ -226,7 +226,6 @@ protected:
     {
         std::swap(m_Ptr, other.m_Ptr);
         std::swap(m_RefCount, other.m_RefCount);
-    //    std::swap(m_WeakRefCount, other.m_WeakRefCount);
     }
 
     uint32_t _RefCount() const noexcept
@@ -247,8 +246,6 @@ protected:
 
     void _DecRef() noexcept
     {
-        bool noWeakRefs = _WeakRefCount() == 0;
-
         if (m_RefCount && (m_RefCount->DecRef() == 0))
         {
             if (m_Ptr)
@@ -257,40 +254,12 @@ protected:
                 m_Ptr = nullptr;
             }
 
-            if (noWeakRefs)
+            if (_WeakRefCount() == 0)
             {
                 delete m_RefCount;
                 m_RefCount = nullptr;
             }
         }
-
-    //    bool noWeakRefs = _WeakRefCount() == 0;
-    //
-    //    if (m_RefCount && (m_RefCount->fetch_sub(1, std::memory_order_acq_rel) == 1))
-    //    {
-    //        std::atomic_thread_fence(std::memory_order_acquire);
-    //
-    //        if (m_Ptr)
-    //        {
-    //            delete m_Ptr;
-    //            m_Ptr = nullptr;
-    //        }
-    //
-    //        if (noWeakRefs)
-    //        {
-    //            if (m_RefCount)
-    //            {
-    //                delete m_RefCount;
-    //                m_RefCount = nullptr;
-    //            }
-    //
-    //            if (m_WeakRefCount)
-    //            {
-    //                delete m_WeakRefCount;
-    //                m_WeakRefCount = nullptr;
-    //            }
-    //        }
-    //    }
     }
 
     void _IncWeakRef() noexcept
@@ -301,32 +270,11 @@ protected:
 
     void _DecWeakRef() noexcept
     {
-        bool expired = _RefCount() == 0;
-
-        if (m_RefCount && (m_RefCount->DecWeakRef() == 0) && expired)
+        if (m_RefCount && (m_RefCount->DecWeakRef() == 0) && (_RefCount() == 0))
         {
             delete m_RefCount;
             m_RefCount = nullptr;
         }
-
-    //    bool expired = _RefCount() == 0;
-    //
-    //    if (m_WeakRefCount && (m_WeakRefCount->fetch_sub(1, std::memory_order_acq_rel) == 1) && expired)
-    //    {
-    //        std::atomic_thread_fence(std::memory_order_acquire);
-    //
-    //        if (m_RefCount)
-    //        {
-    //            delete m_RefCount;
-    //            m_RefCount = nullptr;
-    //        }
-    //
-    //        if (m_WeakRefCount)
-    //        {
-    //            delete m_WeakRefCount;
-    //            m_WeakRefCount = nullptr;
-    //        }
-    //    }
     }
 
     template<typename _Ty2>
@@ -334,7 +282,6 @@ protected:
     {
         m_Ptr = static_cast<_Ty*>(ptr);
         m_RefCount = m_Ptr ? new _AtomicRefCount() : nullptr;
-     //   m_WeakRefCount = m_Ptr ? new std::atomic_uint(0) : nullptr;
     }
 
     template<typename _Ty2>
@@ -342,11 +289,9 @@ protected:
     {
         m_Ptr = static_cast<_Ty*>(ptr.m_Ptr);
         m_RefCount = ptr.m_RefCount;
-    //    m_WeakRefCount = ptr.m_WeakRefCount;
 
         ptr.m_Ptr = nullptr;
         ptr.m_RefCount = nullptr;
-    //    ptr.m_WeakRefCount = nullptr;
     }
 
     template<typename _Ty2>
@@ -354,7 +299,6 @@ protected:
     {
         m_Ptr = static_cast<_Ty*>(ref.m_Ptr);
         m_RefCount = ref.m_RefCount;
-     //   m_WeakRefCount = ptr.m_WeakRefCount;
 
         _IncRef();
     }
@@ -367,33 +311,12 @@ protected:
         _IncWeakRef();
     }
 
-//    template<typename _Ty2>
-//    constexpr void _WeaklyConstructFrom(const WeakRef<_Ty2>& weak) noexcept
-//    {
-//        m_Ptr = static_cast<_Ty*>(weak.m_Ptr);
-//        m_RefCount = weak.m_RefCount;
-//     //   m_WeakRefCount = weak.m_WeakRefCount;
-//
-//        _IncWeakRef();
-//    }
-//
-//    template<typename _Ty2>
-//    constexpr void _WeaklyConstructFrom(const Ref<_Ty2>& ref) noexcept
-//    {
-//        m_Ptr = static_cast<_Ty*>(ref.m_Ptr);
-//        m_RefCount = ref.m_RefCount;
-//     //   m_WeakRefCount = ref.m_WeakRefCount;
-//
-//        _IncWeakRef();
-//    }
-
     // TODO: Make this better
     template<typename _Ty2>
     constexpr void _ConstructFromWeak(const WeakRef<_Ty2>& weak) noexcept
     {
         m_Ptr = static_cast<_Ty*>(weak.m_Ptr);
         m_RefCount = weak.m_RefCount;
-    //    m_WeakRefCount = weak.m_RefCount;
 
         _IncRef();
     }
@@ -401,8 +324,6 @@ protected:
 private:
     _Ty* m_Ptr = nullptr;
     _AtomicRefCount* m_RefCount = nullptr;
-//    std::atomic_uint* m_RefCount = nullptr;
-//    std::atomic_uint* m_WeakRefCount = nullptr;
 
 private:
     template<typename _Ty2>
