@@ -148,52 +148,45 @@ constexpr static _WantedType* GetScopeBaseTypePtr(const Scope<_ScopeType>& scope
 class _AtomicRefCount
 {
 public:
-    using AtomicCounter = unsigned int;
-
-public:
     constexpr _AtomicRefCount() noexcept = default;
     constexpr ~_AtomicRefCount() noexcept = default;
 
     _AtomicRefCount(const _AtomicRefCount&) = delete;
     _AtomicRefCount& operator=(const _AtomicRefCount&) = delete;
 
-    constexpr AtomicCounter GetStrongs() const noexcept
+    uint32_t GetStrongs() const noexcept
     {
-        return m_Strongs;
+        return m_Strongs.load(std::memory_order_acquire);
     }
 
-    constexpr AtomicCounter GetWeaks() const noexcept
+    uint32_t GetWeaks() const noexcept
     {
-        return m_Weaks;
+        return m_Weaks.load(std::memory_order_acquire);
     }
 
-    AtomicCounter IncRef() noexcept
+    uint32_t IncRef() noexcept
     {
-        (void)_MT_INCR(m_Strongs);
-        return GetStrongs();
+        return m_Strongs.fetch_add(1, std::memory_order_relaxed) + 1;
     }
 
-    AtomicCounter DecRef() noexcept
+    uint32_t DecRef() noexcept
     {
-        (void)_MT_DECR(m_Strongs);
-        return GetStrongs();
+        return m_Strongs.fetch_sub(1, std::memory_order_acq_rel) - 1;
     }
 
-    AtomicCounter IncWeakRef() noexcept
+    uint32_t IncWeakRef() noexcept
     {
-        (void)_MT_INCR(m_Weaks);
-        return GetWeaks();
+        return m_Weaks.fetch_add(1, std::memory_order_relaxed) + 1;
     }
 
-    AtomicCounter DecWeakRef() noexcept
+    uint32_t DecWeakRef() noexcept
     {
-        (void)_MT_DECR(m_Weaks);
-        return GetWeaks();
+        return m_Weaks.fetch_sub(1, std::memory_order_acq_rel) - 1;
     }
 
 private:
-    AtomicCounter m_Strongs = 1;
-    AtomicCounter m_Weaks = 0;
+    std::atomic_uint m_Strongs = 1;
+    std::atomic_uint m_Weaks = 0;
 };
 
 template<typename _Ty>
