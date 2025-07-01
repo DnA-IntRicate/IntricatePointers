@@ -277,8 +277,8 @@ protected:
         m_RefCount = m_Ptr ? new _AtomicRefCount() : nullptr;
     }
 
-    template<typename _Ty2>
-    constexpr void _StaticCastConstruct(_Ty2* ptr, const Ref<_Ty>& ref) noexcept
+    template<typename _Ty2, typename _Ty3>
+    constexpr void _AliasConstructFrom(_Ty2* ptr, const Ref<_Ty3>& ref) noexcept
     {
         m_Ptr = static_cast<_Ty*>(ptr);
         m_RefCount = ref.m_RefCount;
@@ -349,8 +349,8 @@ public:
 
     Ref(const Ref<_Ty>& other) noexcept { this->_CopyConstructFrom(other); }
 
-    template<typename _Ty2, std::enable_if_t<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
-    constexpr Ref(_Ty2* newPtr, const Ref<_Ty>& other) noexcept { this->_StaticCastConstruct(newPtr, other); }
+    template<typename _Ty2, typename _Ty3>
+    constexpr Ref(_Ty2* newPtr, const Ref<_Ty3>& owner) noexcept { this->_AliasConstructFrom(newPtr, owner); }
 
     template<typename _Ty2, std::enable_if_t<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
     constexpr Ref(Ref<_Ty2>&& other) noexcept { this->_MoveConstructFrom(std::move(other)); }
@@ -474,7 +474,7 @@ constexpr static _WantedType* GetRefBaseTypePtr(const Ref<_RefType>& ref) noexce
 template<typename _WantedType, typename _RefType>
 constexpr static Ref<_WantedType> StaticRefCast(const Ref<_RefType>& other) noexcept
 {
-    const auto ptr = static_cast<_WantedType>(other.Raw());
+    const auto ptr = static_cast<_WantedType*>(other.Raw());
     return Ref<_WantedType>(ptr, other);
 }
 
