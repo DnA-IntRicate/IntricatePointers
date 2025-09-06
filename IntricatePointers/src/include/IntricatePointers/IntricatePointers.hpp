@@ -22,6 +22,7 @@
 #include <type_traits>
 #include <memory>
 #include <atomic>
+#include <utility>
 
 
 #ifndef INTRICATE_OMIT_NAMESPACE
