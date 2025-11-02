@@ -123,8 +123,11 @@ public:
         return *this;
     }
 
-    constexpr _Ty* operator->() const noexcept { return Raw(); }
-    constexpr _Ty& operator*() const noexcept { return *Raw(); }
+    template<typename _Ty2 = _Ty, std::enable_if_t<!std::is_void_v<_Ty2>, int> = 0>
+    constexpr _Ty2* operator->() const noexcept { return Raw(); }
+
+    template<typename _Ty2 = _Ty, std::enable_if_t<!std::is_void_v<_Ty2>, int> = 0>
+    constexpr _Ty2& operator*() const noexcept { return *Raw(); }
 
 private:
     template<typename _Ty2>
@@ -134,7 +137,7 @@ private:
     _Ty* m_Ptr = nullptr;
 };
 
-template<typename _Ty, typename... _Args, std::enable_if_t<std::negation_v<std::is_array<_Ty>>, int> = 0>
+template<typename _Ty, typename... _Args, std::enable_if_t<!std::is_array_v<_Ty>, int> = 0>
 static constexpr Scope<_Ty> CreateScope(_Args&&... args) noexcept
 {
     return Scope<_Ty>(new _Ty(std::forward<_Args>(args)...));
@@ -465,15 +468,18 @@ public:
         return *this;
     }
 
-    constexpr _Ty* operator->() const noexcept { return this->Raw(); }
-    constexpr _Ty& operator*() const noexcept { return *Raw(); }
+    template<typename _Ty2 = _Ty, std::enable_if_t<!std::is_void_v<_Ty2>, int> = 0>
+    constexpr _Ty2* operator->() const noexcept { return this->Raw(); }
+
+    template<typename _Ty2 = _Ty, std::enable_if_t<!std::is_void_v<_Ty2>, int> = 0>
+    constexpr _Ty2& operator*() const noexcept { return *Raw(); }
 
 private:
     template<typename _Ty2>
     friend class Ref;
 };
 
-template<typename _Ty, typename... _Args, std::enable_if_t<std::negation_v<std::is_array<_Ty>>, int> = 0>
+template<typename _Ty, typename... _Args, std::enable_if_t<!std::is_array_v<_Ty>, int> = 0>
 static constexpr Ref<_Ty> CreateRef(_Args&&... args) noexcept
 {
     return Ref<_Ty>(new _Ty(std::forward<_Args>(args)...));
