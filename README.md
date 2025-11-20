@@ -53,7 +53,7 @@ weakRef.RefCount();                                          // Get the pointer'
 
 // Access the weak ref by locking it.
 // This will increment the reference count while the locked ref is in scope to ensure that the resources aren't deleted
-if (Ref<MyStruct> lockedRef = weakRef.Lock()) 
+if (Ref<MyStruct> lockedRef = weakRef.Lock())
 {
     lockedRef->A;
     lockedRef->B;
@@ -68,7 +68,7 @@ weakRef = nullptr;      // Release the weak reference (this only sets the intern
 IntricatePointers is licensed under the Apache-2.0 License. See [LICENSE](LICENSE).
 
 ```
-Copyright 2024 Adam Foflonker
+Copyright 2025 Adam Foflonker
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

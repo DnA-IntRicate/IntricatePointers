@@ -1,5 +1,6 @@
 workspace "Examples"
     architecture "x86_64"
+    cppdialect (CPP_VER)
 
     configurations
     {
@@ -28,7 +29,6 @@ workspace "Examples"
     filter "system:windows"
         systemversion "latest"
         staticruntime "Off"
-        cppdialect "C++20"
 
         defines
         {
@@ -39,7 +39,6 @@ workspace "Examples"
         systemversion "latest"
         pic "On"
         staticruntime "Off"
-        cppdialect "gnu++20"
 
         defines
         {
@@ -50,7 +49,6 @@ workspace "Examples"
         systemversion "latest"
         pic "On"
         staticruntime "Off"
-        cppdialect "C++latest"
 
         defines
         {
@@ -70,6 +68,7 @@ workspace "Examples"
         runtime "Release"
         symbols "Off"
         optimize "Full"
+        linktimeoptimization "on"
 
         defines
         {
@@ -80,7 +79,6 @@ workspace "Examples"
         {
             "NoBufferSecurityCheck",
             "NoRuntimeChecks",
-            "LinkTimeOptimization",
             "NoIncrementalLink"
         }
 
