@@ -57,31 +57,39 @@ INTRICATE_EXPORT template<typename _Ty>
 class Scope
 {
 public:
-    constexpr explicit Scope(_Ty* ptr) noexcept : m_Ptr(ptr) { };
+    constexpr explicit Scope(_Ty* ptr) noexcept : m_Ptr(ptr), m_Deleter(&_DefaultDelete<_Ty>) { };
 
     template<typename _Ty2, std::enable_if_t<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
-    constexpr explicit Scope(_Ty2* ptr) noexcept : m_Ptr(ptr) { };
+    constexpr explicit Scope(_Ty2* ptr) noexcept : m_Ptr(ptr), m_Deleter(&_DefaultDelete<_Ty2>) { };
 
     template<typename _Ty2, std::enable_if_t<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
-    constexpr Scope(Scope<_Ty2>&& scope) noexcept : m_Ptr(scope.Release()) { };
+    constexpr Scope(Scope<_Ty2>&& scope) noexcept : m_Ptr(scope.Release()), m_Deleter(std::exchange(scope.m_Deleter, nullptr)) { };
 
-    constexpr Scope(Scope<_Ty>&& scope) noexcept : m_Ptr(scope.Release()) { };
+    constexpr Scope(Scope<_Ty>&& scope) noexcept : m_Ptr(scope.Release()), m_Deleter(std::exchange(scope.m_Deleter, nullptr)) { };
 
     Scope(Scope<_Ty>&) = delete;
     Scope(const Scope<_Ty>&) = delete;
-    constexpr Scope(std::nullptr_t) noexcept : m_Ptr(nullptr) { };
+    constexpr Scope(std::nullptr_t) noexcept : m_Ptr(nullptr), m_Deleter(nullptr) { };
     constexpr Scope() noexcept = default;
 
     constexpr ~Scope() noexcept
     {
         if (m_Ptr)
-            delete m_Ptr;
+        {
+            if (m_Deleter)
+                m_Deleter((void*)m_Ptr);
+
+            m_Ptr = nullptr;
+        }
     }
 
     constexpr void Swap(Scope<_Ty>& other) noexcept
     {
         if (this != &other)
+        {
             std::swap(m_Ptr, other.m_Ptr);
+            std::swap(m_Deleter, other.m_Deleter);
+        }
     }
 
     template<typename _Ty2, std::enable_if_t<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
@@ -147,10 +155,18 @@ public:
 
 private:
     template<typename _Ty2>
+    static void _DefaultDelete(void* ptr) noexcept
+    {
+        delete static_cast<_Ty2*>(ptr);
+    }
+
+private:
+    template<typename _Ty2>
     friend class Scope;
 
 private:
     _Ty* m_Ptr = nullptr;
+    void (*m_Deleter)(void*) = nullptr; // Type-erased deleter
 };
 
 INTRICATE_EXPORT template<typename _Ty, typename... _Args, std::enable_if_t<!std::is_array_v<_Ty>, int> = 0>
@@ -221,7 +237,7 @@ template<typename _Ty>
 class _RefBase
 {
 protected:
-    constexpr _RefBase(std::nullptr_t) noexcept : m_Ptr(nullptr), m_RefCount(nullptr) { };
+    constexpr _RefBase(std::nullptr_t) noexcept : m_Ptr(nullptr), m_RefCount(nullptr), m_Deleter(nullptr) { };
     constexpr _RefBase() noexcept = default;
     constexpr ~_RefBase() noexcept = default;
 
@@ -239,6 +255,7 @@ protected:
     {
         std::swap(m_Ptr, other.m_Ptr);
         std::swap(m_RefCount, other.m_RefCount);
+        std::swap(m_Deleter, other.m_Deleter);
     }
 
     uint32_t _RefCount() const noexcept
@@ -263,7 +280,9 @@ protected:
         {
             if (m_Ptr)
             {
-                delete m_Ptr;
+                if (m_Deleter)
+                    m_Deleter((void*)m_Ptr);
+
                 m_Ptr = nullptr;
             }
 
@@ -295,6 +314,7 @@ protected:
     {
         m_Ptr = static_cast<_Ty*>(ptr);
         m_RefCount = m_Ptr ? new _AtomicRefCount() : nullptr;
+        m_Deleter = m_Ptr ? &_DefaultDelete<_Ty2> : nullptr;
     }
 
     template<typename _Ty2, typename _Ty3>
@@ -302,8 +322,11 @@ protected:
     {
         m_Ptr = static_cast<_Ty*>(ptr);
         m_RefCount = ref.m_RefCount;
+        m_Deleter = ref.m_Deleter;
 
-        _IncRef();
+        // Guard against incrementing if we alias-constructed from an empty ref
+        if (m_RefCount)
+            _IncRef();
     }
 
     template<typename _Ty2, typename _Ty3>
@@ -311,9 +334,11 @@ protected:
     {
         m_Ptr = static_cast<_Ty*>(ptr);
         m_RefCount = ref.m_RefCount;
+        m_Deleter = ref.m_Deleter;
 
         ref.m_Ptr = nullptr;
         ref.m_RefCount = nullptr;
+        ref.m_Deleter = nullptr;
     }
 
     template<typename _Ty2>
@@ -321,9 +346,11 @@ protected:
     {
         m_Ptr = static_cast<_Ty*>(ptr.m_Ptr);
         m_RefCount = ptr.m_RefCount;
+        m_Deleter = ptr.m_Deleter;
 
         ptr.m_Ptr = nullptr;
         ptr.m_RefCount = nullptr;
+        ptr.m_Deleter = nullptr;
     }
 
     template<typename _Ty2>
@@ -331,6 +358,7 @@ protected:
     {
         m_Ptr = static_cast<_Ty*>(ref.m_Ptr);
         m_RefCount = ref.m_RefCount;
+        m_Deleter = ref.m_Deleter;
 
         _IncRef();
     }
@@ -340,6 +368,7 @@ protected:
     {
         m_Ptr = static_cast<_Ty*>(ptr.m_Ptr);
         m_RefCount = ptr.m_RefCount;
+        m_Deleter = ptr.m_Deleter;
 
         _IncWeakRef();
     }
@@ -347,15 +376,33 @@ protected:
     template<typename _Ty2>
     constexpr void _ConstructFromWeak(const WeakRef<_Ty2>& weak) noexcept
     {
+        // We cannot create a strong reference to the resource if it was already deleted
+        if (weak._RefCount() == 0)
+        {
+            m_Ptr = nullptr;
+            m_RefCount = nullptr;
+            m_Deleter = nullptr;
+            return;
+        }
+
         m_Ptr = static_cast<_Ty*>(weak.m_Ptr);
         m_RefCount = weak.m_RefCount;
+        m_Deleter = weak.m_Deleter;
 
         _IncRef();
     }
 
 private:
+    template<typename _Ty2>
+    static void _DefaultDelete(void* ptr) noexcept
+    {
+        delete static_cast<_Ty2*>(ptr);
+    }
+
+private:
     _Ty* m_Ptr = nullptr;
     _AtomicRefCount* m_RefCount = nullptr;
+    void (*m_Deleter)(void*) = nullptr; // Type-erased deleter
 
 private:
     template<typename _Ty2>
