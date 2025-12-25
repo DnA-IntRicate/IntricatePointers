@@ -20,7 +20,7 @@
 #pragma once
 
 #ifdef INTRICATE_BUILD_MODULE
-    #define INTRICATE_EXPORT export
+#   define INTRICATE_EXPORT export
 
 import <ostream>;
 import <type_traits>;
@@ -30,25 +30,25 @@ import <utility>;
 import <cstdint>;
 import <functional>;
 #else
-    #define INTRICATE_EXPORT
+#   define INTRICATE_EXPORT
 
-    #include <ostream>
-    #include <type_traits>
-    #include <memory>
-    #include <atomic>
-    #include <utility>
-    #include <cstdint>
-    #include <functional>
+#   include <ostream>
+#   include <type_traits>
+#   include <memory>
+#   include <atomic>
+#   include <utility>
+#   include <cstdint>
+#   include <functional>
 #endif
 
 #ifndef INTRICATE_OMIT_NAMESPACE
-    #define INTRICATE_NAMESPACE_BEGIN INTRICATE_EXPORT namespace Intricate {
-    #define INTRICATE_NAMESPACE_END }
-    #define _INTRICATE ::Intricate::
+#   define INTRICATE_NAMESPACE_BEGIN INTRICATE_EXPORT namespace Intricate {
+#   define INTRICATE_NAMESPACE_END }
+#   define _INTRICATE ::Intricate::
 #else
-    #define INTRICATE_NAMESPACE_BEGIN
-    #define INTRICATE_NAMESPACE_END
-    #define _INTRICATE
+#   define INTRICATE_NAMESPACE_BEGIN
+#   define INTRICATE_NAMESPACE_END
+#   define _INTRICATE
 #endif // !INTRICATE_OMIT_NAMESPACE
 
 INTRICATE_NAMESPACE_BEGIN
@@ -57,19 +57,19 @@ INTRICATE_EXPORT template<typename _Ty>
 class Scope
 {
 public:
-    constexpr explicit Scope(_Ty* ptr) noexcept : m_Ptr(ptr), m_Deleter(&_DefaultDelete<_Ty>) { };
+    constexpr explicit Scope(_Ty* ptr) noexcept : m_Ptr(ptr), m_Deleter(&_DefaultDelete<_Ty>) {};
 
     template<typename _Ty2, std::enable_if_t<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
-    constexpr explicit Scope(_Ty2* ptr) noexcept : m_Ptr(ptr), m_Deleter(&_DefaultDelete<_Ty2>) { };
+    constexpr explicit Scope(_Ty2* ptr) noexcept : m_Ptr(ptr), m_Deleter(&_DefaultDelete<_Ty2>) {};
 
     template<typename _Ty2, std::enable_if_t<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
-    constexpr Scope(Scope<_Ty2>&& scope) noexcept : m_Ptr(scope.Release()), m_Deleter(std::exchange(scope.m_Deleter, nullptr)) { };
+    constexpr Scope(Scope<_Ty2>&& scope) noexcept : m_Ptr(scope.Release()), m_Deleter(std::exchange(scope.m_Deleter, nullptr)) {};
 
-    constexpr Scope(Scope<_Ty>&& scope) noexcept : m_Ptr(scope.Release()), m_Deleter(std::exchange(scope.m_Deleter, nullptr)) { };
+    constexpr Scope(Scope<_Ty>&& scope) noexcept : m_Ptr(scope.Release()), m_Deleter(std::exchange(scope.m_Deleter, nullptr)) {};
 
     Scope(Scope<_Ty>&) = delete;
     Scope(const Scope<_Ty>&) = delete;
-    constexpr Scope(std::nullptr_t) noexcept : m_Ptr(nullptr), m_Deleter(nullptr) { };
+    constexpr Scope(std::nullptr_t) noexcept : m_Ptr(nullptr), m_Deleter(nullptr) {};
     constexpr Scope() noexcept = default;
 
     constexpr ~Scope() noexcept
@@ -231,13 +231,13 @@ class Ref;
 template<typename _Ty>
 class WeakRef;
 
-// Base class for Ref and WeakRef
+// Base class for Ref, UnsafeRef and WeakRef
 // std::remove_extent<> will need to be used in future to support array types.
 template<typename _Ty>
 class _RefBase
 {
 protected:
-    constexpr _RefBase(std::nullptr_t) noexcept : m_Ptr(nullptr), m_RefCount(nullptr), m_Deleter(nullptr) { };
+    constexpr _RefBase(std::nullptr_t) noexcept : m_Ptr(nullptr), m_RefCount(nullptr), m_Deleter(nullptr) {};
     constexpr _RefBase() noexcept = default;
     constexpr ~_RefBase() noexcept = default;
 
@@ -392,6 +392,14 @@ protected:
         _IncRef();
     }
 
+    template<typename _Ty2>
+    constexpr void _UnsafelyConstructFrom(const _RefBase<_Ty2>& ptr) noexcept
+    {
+        m_Ptr = static_cast<_Ty*>(ptr.m_Ptr);
+        m_RefCount = ptr.m_RefCount;
+        m_Deleter = ptr.m_Deleter;
+    }
+
 private:
     template<typename _Ty2>
     static void _DefaultDelete(void* ptr) noexcept
@@ -442,7 +450,7 @@ public:
 
     constexpr explicit Ref(const WeakRef<_Ty>& weak) noexcept { this->_ConstructFromWeak(weak); }
 
-    constexpr Ref(std::nullptr_t) noexcept : _RefBase<_Ty>(nullptr) { };
+    constexpr Ref(std::nullptr_t) noexcept : _RefBase<_Ty>(nullptr) {};
     constexpr Ref() noexcept = default;
     constexpr ~Ref() noexcept { this->_DecRef(); }
 
@@ -497,7 +505,7 @@ public:
     }
 
     constexpr explicit operator bool() const noexcept { return Valid(); }
-    constexpr operator Ref<const _Ty>() const noexcept { return Ref<const _Ty>{ this->m_Ptr, this->m_RefCount, this->m_WeakRefCount }; }
+    constexpr operator Ref<const _Ty>() const noexcept { return Ref<const _Ty>{ this->m_Ptr, this->m_RefCount, this->m_Deleter }; }
 
     Ref<_Ty>& operator=(const Ref<_Ty>& other) noexcept
     {
@@ -552,6 +560,87 @@ INTRICATE_EXPORT template<typename _WantedType, typename _RefType>
 _WantedType* GetRefBaseTypePtr(const Ref<_RefType>& ref) noexcept
 {
     return static_cast<_WantedType*>(ref.Raw());
+}
+
+// A non-owning view that grants temporary direct access to reference count
+// manipulation for an existing Ref.
+//
+// This type does not participate in ownership or lifetime management. It may be
+// used to increment or decrement the underlying object's reference count when
+// higher-level ownership semantics are not suitable.
+//
+// Important notes:
+//  * The referenced object must remain valid for the entire lifetime of this
+//    instance. This class makes no guarantees about lifetime safety.
+//  * Misuse can cause leaks, premature destruction, or inconsistencies in
+//    ownership models. It should only be used when a clear manual strategy for
+//    reference handling exists.
+//  * Constructing this type is an explicit opt-in to bypassing automatic
+//    lifetime management. Only cast the magic unsafe spell if you know what you're doing!
+//
+// Use with extreme caution, for this type is dangerous...
+INTRICATE_EXPORT template<typename _Ty>
+class UnsafeRef : public _RefBase<_Ty>
+{
+public:
+    constexpr UnsafeRef(const Ref<_Ty>& ref) noexcept { this->_UnsafelyConstructFrom(ref); }
+
+    template<typename _Ty2, std::enable_if_t<std::is_base_of_v<_Ty, _Ty2>, int> = 0>
+    constexpr UnsafeRef(const Ref<_Ty2>& ref) noexcept { this->_UnsafelyConstructFrom(ref); }
+
+    constexpr UnsafeRef(std::nullptr_t) noexcept : _RefBase<_Ty>(nullptr) {};
+    constexpr UnsafeRef() noexcept = default;
+    constexpr ~UnsafeRef() noexcept = default;
+
+    constexpr void Swap(UnsafeRef<_Ty>& other) noexcept
+    {
+        if (this != &other)
+            this->_Swap(other);
+    }
+
+    void IncRef() noexcept { this->_IncRef(); }
+    void DecRef() noexcept { this->_DecRef(); }
+
+    void IncWeakRef() noexcept { this->_IncWeakRef(); }
+    void DecWeakRef() noexcept { this->_DecWeakRef(); }
+
+    uint32_t RefCount() const noexcept
+    {
+        return this->_RefCount();
+    }
+
+    uint32_t WeakRefCount() const noexcept
+    {
+        return this->_WeakRefCount();
+    }
+
+    constexpr bool Valid() const noexcept
+    {
+        return this->_Raw() != nullptr;
+    }
+
+    constexpr explicit operator bool() const noexcept { return Valid(); }
+
+    constexpr UnsafeRef<_Ty>& operator=(std::nullptr_t) noexcept
+    {
+        UnsafeRef<_Ty>(nullptr).Swap(*this);
+        return *this;
+    }
+
+    // NOTE: To prevent accidental usages, we intentionally deleted the Ref assignment operator overloads.
+    constexpr UnsafeRef<_Ty>& operator=(const Ref<_Ty>&) noexcept = delete;
+    constexpr UnsafeRef<_Ty>& operator=(Ref<_Ty>&&) noexcept = delete;
+
+private:
+    template<typename _Ty2>
+    friend class UnsafeRef;
+};
+
+// Unsafe cast and copy
+INTRICATE_EXPORT template<typename _Ty>
+UnsafeRef<_Ty> UnsafeRefCast(const Ref<_Ty>& ref) noexcept
+{
+    return UnsafeRef<_Ty>(ref);
 }
 
 // Static cast and copy
@@ -637,7 +726,7 @@ public:
 
     constexpr WeakRef(WeakRef<_Ty>&& weakRef) noexcept { this->_MoveConstructFrom(std::move(weakRef)); }
 
-    constexpr WeakRef(std::nullptr_t) noexcept : _RefBase<_Ty>(nullptr) { };
+    constexpr WeakRef(std::nullptr_t) noexcept : _RefBase<_Ty>(nullptr) {};
     constexpr WeakRef() noexcept = default;
     constexpr ~WeakRef() noexcept { this->_DecWeakRef(); }
 
@@ -689,7 +778,7 @@ public:
     }
 
     constexpr explicit operator bool() const noexcept { return Valid(); }
-    constexpr operator WeakRef<const _Ty>() const noexcept { return WeakRef<const _Ty>{ this->m_Ptr, this->m_RefCount, this->m_WeakRefCount }; }
+    constexpr operator WeakRef<const _Ty>() const noexcept { return WeakRef<const _Ty>{ this->m_Ptr, this->m_RefCount, this->m_Deleter }; }
 
     WeakRef<_Ty>& operator=(const WeakRef<_Ty>& other) noexcept
     {
@@ -763,22 +852,19 @@ INTRICATE_EXPORT template<typename _Ty>
 using WeakPtr = std::weak_ptr<_Ty>;
 
 INTRICATE_EXPORT template<typename _Elem, typename _Traits, typename _Ty>
-std::basic_ostream<_Elem, _Traits>& operator<<(std::basic_ostream<_Elem, _Traits>& ostream,
-    const Scope<_Ty>& ptr)
+std::basic_ostream<_Elem, _Traits>& operator<<(std::basic_ostream<_Elem, _Traits>& ostream, const Scope<_Ty>& ptr)
 {
     return ostream << ptr.Raw();
 }
 
 INTRICATE_EXPORT template<typename _Elem, typename _Traits, typename _Ty>
-std::basic_ostream<_Elem, _Traits>& operator<<(std::basic_ostream<_Elem, _Traits>& ostream,
-    const Ref<_Ty>& ptr)
+std::basic_ostream<_Elem, _Traits>& operator<<(std::basic_ostream<_Elem, _Traits>& ostream, const Ref<_Ty>& ptr)
 {
     return ostream << ptr.Raw();
 }
 
 INTRICATE_EXPORT template<typename _Elem, typename _Traits, typename _Ty>
-std::basic_ostream<_Elem, _Traits>& operator<<(std::basic_ostream<_Elem, _Traits>& ostream,
-    const WeakRef<_Ty>& ptr)
+std::basic_ostream<_Elem, _Traits>& operator<<(std::basic_ostream<_Elem, _Traits>& ostream, const WeakRef<_Ty>& ptr)
 {
     return ostream << ptr.Raw();
 }
@@ -1151,19 +1237,19 @@ namespace std
     struct hash;
 
     INTRICATE_EXPORT template<typename _Ty>
-    struct hash<_INTRICATE Scope<_Ty>>
+        struct hash<_INTRICATE Scope<_Ty>>
     {
         size_t operator()(const _INTRICATE Scope<_Ty>& ptr) const noexcept { return hash<_Ty*>{}(ptr.Raw()); }
     };
 
     INTRICATE_EXPORT template<typename _Ty>
-    struct hash<_INTRICATE Ref<_Ty>>
+        struct hash<_INTRICATE Ref<_Ty>>
     {
         size_t operator()(const _INTRICATE Ref<_Ty>& ptr) const noexcept { return hash<_Ty*>{}(ptr.Raw()); }
     };
 
     INTRICATE_EXPORT template<typename _Ty>
-    struct hash<_INTRICATE WeakRef<_Ty>>
+        struct hash<_INTRICATE WeakRef<_Ty>>
     {
         size_t operator()(const _INTRICATE WeakRef<_Ty>& ptr) const noexcept { return hash<_Ty*>{}(ptr.Raw()); }
     };
